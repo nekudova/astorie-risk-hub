@@ -1,140 +1,96 @@
-const activities = window.ASTORIE_ACTIVITIES || [];
-const allRisks = window.ASTORIE_RISKS || [];
-const riskMap = Object.fromEntries(allRisks.map(r => [r.id, r]));
-let state = { activity:null, risks:[], editing:null };
+
+let activities=[], risks=[], currentRisk=null, activeTab='insurer';
 
 const $ = id => document.getElementById(id);
+function money(v){return v||'dle dohody s klientem a požadavků pojišťovny'}
 
-function moneySafe(v){return (v||'').trim();}
-function cloneRisk(r){return {...r, active:true, custom:false};}
-
-async function loadAres(){
-  const ico = $('ico').value.trim();
-  $('aresStatus').textContent = 'Načítám údaje z ARES…';
-  try{
-    const res = await fetch(`/api/ares/${encodeURIComponent(ico)}`);
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error || 'ARES se nepodařilo načíst.');
-    $('clientName').value = data.client.name || '';
-    $('clientAddress').value = data.client.address || '';
-    $('clientDic').value = data.client.dic || '';
-    $('aresStatus').textContent = 'Údaje byly načteny z ARES. Zkontrolujte je s klientem.';
-    updateOutput();
-  }catch(e){
-    $('aresStatus').textContent = e.message;
-  }
-}
-
-function clearClient(){
-  ['ico','clientName','clientAddress','clientDic','contactPerson','contactInfo','turnover','employees','currentInsurer','mainActivity','sideActivities','contracts'].forEach(id=>$(id).value='');
-  ['worksAtCustomer','takesProperty','hasProduct','usesSubcontractors','exports','contractualLimits'].forEach(id=>$(id).checked=false);
-  $('aresStatus').textContent='';
-  updateOutput();
-}
-
-function renderActivity(){
-  const box = $('activityProfile');
-  if(!state.activity){box.className='profile empty';box.textContent='Vyberte činnost klienta. Zobrazí se rizikový profil a doporučené otázky.';return;}
-  box.className='profile';
-  box.innerHTML = `<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start"><div><h3>${state.activity.name}</h3><p>${state.activity.summary}</p><p><b>Orientační limit:</b> ${state.activity.limitHint}</p></div><span class="badge">Rizikovost: ${state.activity.riskLevel}</span></div>`;
-}
-
-function renderRisks(){
-  const grid = $('riskGrid');
-  if(!state.risks.length){grid.innerHTML='<p class="profile empty">Po výběru činnosti se zde zobrazí typická rizika. Vlastní riziko lze přidat ručně.</p>'; return;}
-  grid.innerHTML = state.risks.map((r,i)=>`<article class="risk-card ${r.active?'':'off'}" data-i="${i}"><div class="risk-top"><h3>${r.name}</h3><span class="priority">${r.priority}</span></div><p>${r.explanation}</p><div class="limit">Limit: ${r.defaultLimit}</div><small>${r.active?'Zahrnuto do poptávky':'Vyřazeno z poptávky'}</small></article>`).join('');
-  grid.querySelectorAll('.risk-card').forEach(el=>el.addEventListener('click',()=>openRisk(Number(el.dataset.i))));
-}
-
-function selectActivity(id){
-  state.activity = activities.find(a=>a.id===id) || null;
-  state.risks = state.activity ? state.activity.defaultRiskIds.map(id=>cloneRisk(riskMap[id])).filter(Boolean) : [];
-  applyQuestionnaireHints();
-  renderActivity(); renderRisks(); updateOutput();
-}
-
-function applyQuestionnaireHints(){
-  if(!state.risks.length) return;
-  const ensure = id => { if(!state.risks.some(r=>r.id===id) && riskMap[id]) state.risks.push(cloneRisk(riskMap[id])); };
-  if($('takesProperty')?.checked) ensure('prevzate_veci');
-  if($('hasProduct')?.checked){ ensure('odpovednost_vyrobek'); ensure('stazeni_vyrobku'); }
-  if($('usesSubcontractors')?.checked) ensure('subdodavatele');
-  if($('exports')?.checked) ensure('export_usa_kanada');
-  if($('worksAtCustomer')?.checked) ensure('vadna_prace');
-}
-
-function openRisk(i){
-  state.editing = i;
-  const r = state.risks[i];
-  $('modalTitle').textContent = 'Detail rizika: ' + r.name;
-  $('modalActive').checked = !!r.active;
-  $('modalName').value = r.name || '';
-  $('modalPriority').value = r.priority || '';
-  $('modalLimit').value = r.defaultLimit || '';
-  $('modalQuestion').value = r.clientQuestion || '';
-  $('modalExplanation').value = r.explanation || '';
-  $('modalClientNote').value = r.clientNote || '';
-  $('modalRecommendation').value = r.recommendation || '';
-  $('riskDialog').showModal();
-}
-
-function saveRisk(){
-  const i = state.editing;
-  if(i === null) return;
-  const r = state.risks[i];
-  r.active = $('modalActive').checked;
-  r.name = $('modalName').value;
-  r.priority = $('modalPriority').value;
-  r.defaultLimit = $('modalLimit').value;
-  r.clientQuestion = $('modalQuestion').value;
-  r.explanation = $('modalExplanation').value;
-  r.clientNote = $('modalClientNote').value;
-  r.recommendation = $('modalRecommendation').value;
-  renderRisks(); updateOutput();
-}
-
-function addCustomRisk(){
-  const r = {id:'custom_'+Date.now(), name:'Vlastní riziko', priority:'DOPLNIT', defaultLimit:'Doplnit', explanation:'Popište riziko.', clientQuestion:'Na co se má poradce klienta zeptat?', example:'', recommendation:'Doplnit důvod doporučení.', clientNote:'', active:true, custom:true};
-  state.risks.push(r); renderRisks(); openRisk(state.risks.length-1); updateOutput();
-}
-
-function updateOutput(){
-  const active = state.risks.filter(r=>r.active);
-  const checks = [];
-  if($('worksAtCustomer').checked) checks.push('klient pracuje u zákazníka / na cizím majetku');
-  if($('takesProperty').checked) checks.push('klient přebírá věci zákazníků');
-  if($('hasProduct').checked) checks.push('klient vyrábí nebo dodává výrobky');
-  if($('usesSubcontractors').checked) checks.push('klient používá subdodavatele');
-  if($('exports').checked) checks.push('klient má export / zahraniční odběratele');
-  if($('contractualLimits').checked) checks.push('klient má smluvní požadavky na limit pojištění');
-  const lines = [];
-  lines.push('PRACOVNÍ PODKLAD – POPtÁVKA PODNIKATELSKÉHO POJIŠTĚNÍ');
-  lines.push('');
-  lines.push(`Klient: ${$('clientName').value || 'doplnit'} | IČO: ${$('ico').value || 'doplnit'}`);
-  lines.push(`Sídlo: ${$('clientAddress').value || 'doplnit'}`);
-  lines.push(`Kontakt: ${$('contactPerson').value || 'doplnit'}; ${$('contactInfo').value || ''}`);
-  lines.push(`Obrat: ${$('turnover').value || 'doplnit'} | Zaměstnanci: ${$('employees').value || 'doplnit'}`);
-  lines.push(`Činnost: ${state.activity ? state.activity.name : 'doplnit'}${$('mainActivity').value ? ' – '+$('mainActivity').value : ''}`);
-  if($('sideActivities').value) lines.push(`Vedlejší činnosti: ${$('sideActivities').value}`);
-  if($('contracts').value) lines.push(`Zakázky / odběratelé: ${$('contracts').value}`);
-  if(checks.length) lines.push(`Zjištěné znaky rizika: ${checks.join('; ')}.`);
-  lines.push('');
-  lines.push('Navržená rizika k poptávce:');
-  if(!active.length) lines.push('- zatím nejsou vybrána žádná aktivní rizika');
-  active.forEach(r=>lines.push(`- ${r.name}; limit: ${r.defaultLimit}; důvod: ${r.recommendation || r.clientNote || 'doplnit'}`));
-  $('clientOutput').value = lines.join('\n');
-}
-
-function bind(){
-  $('loadAresBtn').addEventListener('click', loadAres);
-  $('clearClientBtn').addEventListener('click', clearClient);
-  $('activitySelect').addEventListener('change', e=>selectActivity(e.target.value));
+async function init(){
+  activities = await (await fetch('/api/activities')).json();
+  const sel=$('activitySelect'); sel.innerHTML = activities.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  sel.addEventListener('change', loadActivity);
+  $('aresBtn').addEventListener('click', loadAres);
   $('addRiskBtn').addEventListener('click', addCustomRisk);
-  $('saveRiskBtn').addEventListener('click', saveRisk);
-  $('copyOutputBtn').addEventListener('click', async()=>{await navigator.clipboard.writeText($('clientOutput').value); $('copyOutputBtn').textContent='Zkopírováno'; setTimeout(()=>$('copyOutputBtn').textContent='Kopírovat text',1500);});
-  document.querySelectorAll('input,textarea').forEach(el=>el.addEventListener('input', updateOutput));
-  document.querySelectorAll('.question-grid input').forEach(el=>el.addEventListener('change',()=>{applyQuestionnaireHints();renderRisks();updateOutput();}));
-  renderRisks(); updateOutput();
+  $('closeModal').addEventListener('click', ()=>$('modal').classList.add('hidden'));
+  $('saveRisk').addEventListener('click', saveRisk);
+  $('copyOutput').addEventListener('click', copyOutput);
+  document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeTab=b.dataset.tab;renderOutput();}));
+  ['clientName','address','contactPerson','turnover','employees'].forEach(id=>$(id).addEventListener('input', renderOutput));
+  await loadActivity();
 }
-
-document.addEventListener('DOMContentLoaded', bind);
+async function loadAres(){
+  const ico=$('ico').value.trim(); $('aresStatus').textContent='Načítám ARES…';
+  try{
+    const r=await fetch('/api/ares/'+encodeURIComponent(ico)); const d=await r.json();
+    if(!d.ok) throw new Error(d.message||'ARES nenalezen');
+    $('clientName').value=d.nazev||''; $('address').value=d.adresa||''; $('aresStatus').textContent='Údaje z ARES byly načteny. Zkontrolujte je a případně doplňte.';
+  }catch(e){$('aresStatus').textContent=e.message||'ARES se nepodařilo načíst.'}
+  renderOutput();
+}
+async function loadActivity(){
+  const id=$('activitySelect').value; const a=activities.find(x=>x.id===id);
+  $('activityProfile').innerHTML = `<b>${a.name}</b><br>${a.desc}<br><br><b>Orientační limit:</b> ${a.limit}<br><b>Rizikovost:</b> ${a.risk_level}`;
+  risks = await (await fetch('/api/risks/'+id)).json();
+  risks = risks.map(r=>({...r, clientNote:''}));
+  renderRisks(); renderOutput();
+}
+function renderRisks(){
+  $('riskGrid').innerHTML = risks.map((r,i)=>`
+    <div class="risk ${r.included?'':'excluded'}" onclick="openRisk(${i})">
+      <span class="badge">${r.priority||'VLASTNÍ'}</span>
+      <h3>${r.name}</h3>
+      <p>${r.desc||''}</p>
+      <b>Limit: ${money(r.limit)}</b><br>
+      <small>${r.included?'Zahrnuto do poptávky':'Vyřazeno z poptávky'}</small>
+    </div>`).join('');
+}
+function openRisk(i){
+  currentRisk=i; const r=risks[i];
+  $('modalTitle').textContent=r.name; $('mIncluded').checked=!!r.included; $('mLimit').value=r.limit||''; $('mQuestion').value=r.question||''; $('mDesc').value=r.desc||''; $('mReason').value=r.reason||''; $('mClientNote').value=r.clientNote||'';
+  $('modal').classList.remove('hidden');
+}
+function saveRisk(){
+  const r=risks[currentRisk];
+  r.included=$('mIncluded').checked; r.limit=$('mLimit').value; r.question=$('mQuestion').value; r.desc=$('mDesc').value; r.reason=$('mReason').value; r.clientNote=$('mClientNote').value;
+  $('modal').classList.add('hidden'); renderRisks(); renderOutput();
+}
+function addCustomRisk(){
+  risks.push({id:'custom_'+Date.now(),name:'Vlastní riziko',priority:'VLASTNÍ',limit:'',included:true,desc:'Doplňte popis rizika.',question:'Doplňte otázku pro klienta.',reason:'Doplňte důvod doporučení.',clientNote:''});
+  renderRisks(); openRisk(risks.length-1);
+}
+function client(){return {name:$('clientName').value||'[název klienta]', ico:$('ico').value||'[IČO]', address:$('address').value||'[sídlo]', contact:$('contactPerson').value||'[kontaktní osoba]', turnover:$('turnover').value||'[obrat]', employees:$('employees').value||'[počet zaměstnanců]'}}
+function inc(){return risks.filter(r=>r.included)}
+function renderOutput(){
+  const c=client(); const a=activities.find(x=>x.id===$('activitySelect').value)||{};
+  let html='';
+  if(activeTab==='insurer') html = insurerDoc(c,a);
+  if(activeTab==='client') html = clientDoc(c,a);
+  if(activeTab==='zzj') html = zzjDoc(c,a);
+  $('output').innerHTML=html;
+}
+function insurerDoc(c,a){
+  return `<h3>Poptávka pojištění odpovědnosti podnikatele</h3>
+  <h4>1. Identifikace klienta</h4>
+  <table><tr><th>Název</th><td>${c.name}</td></tr><tr><th>IČO</th><td>${c.ico}</td></tr><tr><th>Sídlo</th><td>${c.address}</td></tr><tr><th>Kontaktní osoba</th><td>${c.contact}</td></tr><tr><th>Obrat / zaměstnanci</th><td>${c.turnover} / ${c.employees}</td></tr></table>
+  <h4>2. Charakter činnosti</h4><p>${a.name||''}: ${a.desc||''}</p>
+  <h4>3. Požadovaný rozsah krytí</h4>
+  <table><tr><th>Riziko / rozšíření</th><th>Požadovaný limit</th><th>Upřesnění pro pojišťovnu</th></tr>${inc().map(r=>`<tr><td><b>${r.name}</b><br>${r.desc||''}</td><td>${money(r.limit)}</td><td>${r.clientNote||r.question||''}</td></tr>`).join('')}</table>
+  <div class="doc-note"><b>Žádost:</b> Prosíme o nabídku včetně uvedení limitů, sublimitů, spoluúčastí, územního rozsahu, výluk a případných podmínek pojistitelnosti.</div>`;
+}
+function clientDoc(c,a){
+  return `<h3>Klientské shrnutí návrhu poptávky</h3>
+  <p>Na základě dosud zjištěných informací o činnosti klienta <b>${c.name}</b> byl připraven pracovní návrh rozsahu pojištění odpovědnosti.</p>
+  <h4>Hlavní identifikovaná rizika</h4>
+  <table><tr><th>Riziko</th><th>Proč jej řešíme</th><th>Orientační limit</th></tr>${inc().map(r=>`<tr><td><b>${r.name}</b></td><td>${r.reason||r.desc||''}${r.clientNote?'<br><i>Poznámka: '+r.clientNote+'</i>':''}</td><td>${money(r.limit)}</td></tr>`).join('')}</table>
+  <div class="doc-note"><b>Upozornění:</b> Uvedené limity jsou pracovní návrh pro poptávku. Konečné doporučení bude stanoveno až po vyhodnocení nabídek pojišťoven, výluk, sublimitů a spoluúčastí.</div>`;
+}
+function zzjDoc(c,a){
+  return `<h3>Podklad pro záznam z jednání</h3>
+  <h4>Požadavky, cíle a potřeby klienta</h4>
+  <p>Klient požaduje prověřit možnosti pojištění odpovědnosti podnikatele pro činnost: <b>${a.name||''}</b>. Cílem je nastavit pojistnou ochranu odpovídající charakteru činnosti, rozsahu zakázek a možným škodám vůči třetím osobám.</p>
+  <h4>Projednaná rizika</h4>
+  <ul>${inc().map(r=>`<li><b>${r.name}</b> – ${r.reason||r.desc||''} Navržený limit/sublimit: ${money(r.limit)}.</li>`).join('')}</ul>
+  <h4>Důvod dalšího postupu</h4>
+  <p>Na základě zjištěných údajů bude zpracována poptávka na vybrané pojišťovny. Po obdržení nabídek budou porovnány limity, sublimity, spoluúčasti, výluky a zvláštní ujednání. Teprve poté bude klientovi předloženo doporučení konkrétní varianty.</p>`;
+}
+function copyOutput(){navigator.clipboard.writeText($('output').innerText)}
+init();

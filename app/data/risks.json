@@ -1,25 +1,220 @@
-[
-  {"id":"provozni_odpovednost","name":"Provozní odpovědnost","priority":"POVINNÉ","defaultLimit":"10 000 000 Kč","explanation":"Základní krytí škod způsobených provozní činností klienta třetím osobám.","clientQuestion":"Jakou maximální škodu může klient způsobit běžnou činností jednou událostí?","example":"Zaměstnanec poškodí majetek zákazníka nebo dojde ke škodě na zdraví.","recommendation":"Řešit vždy jako základní pilíř odpovědnosti.","clientNote":"Základní krytí odpovědnosti z provozní činnosti."},
-  {"id":"vadna_prace","name":"Vadná práce po předání","priority":"KRITICKÉ","defaultLimit":"5 000 000 Kč","explanation":"Kryje situaci, kdy se chyba v provedené práci projeví až po dokončení a předání zákazníkovi.","clientQuestion":"Může se chyba ve vaší práci projevit až po dokončení a předání zákazníkovi?","example":"Instalatér namontuje potrubí, které později praskne a vytopí objekt.","recommendation":"U stavebních, montážních, servisních a řemeslných činností zásadní krytí.","clientNote":"Důležité krytí pro škody vzniklé až po předání práce."},
-  {"id":"prevzate_veci","name":"Věci převzaté","priority":"KRITICKÉ","defaultLimit":"2 000 000 Kč","explanation":"Kryje škody na věcech, které klient převzal za účelem provedení činnosti.","clientQuestion":"Přebíráte věci zákazníků do opravy, úpravy, úschovy nebo zpracování?","example":"Poškození vozidla, stroje nebo materiálu převzatého od zákazníka.","recommendation":"Nutné všude, kde klient pracuje s cizí věcí.","clientNote":"Krytí škod na věcech zákazníka převzatých k práci."},
-  {"id":"uzivane_veci","name":"Věci užívané","priority":"DŮLEŽITÉ","defaultLimit":"1 000 000 Kč","explanation":"Kryje škody na věcech, které klient užívá, ale nevlastní je.","clientQuestion":"Užíváte pronajaté nebo zapůjčené stroje, prostory či zařízení?","example":"Poškození pronajatého stroje nebo zařízení zákazníka.","recommendation":"Řešit u činností s prací na cizím majetku nebo pronájmy.","clientNote":"Krytí škod na cizích věcech, které klient používá."},
-  {"id":"subdodavatele","name":"Subdodavatelé","priority":"KRITICKÉ","defaultLimit":"Dle hlavního limitu","explanation":"Řeší odpovědnost za činnost subdodavatelů a návaznost na smluvní vztahy.","clientQuestion":"Používáte subdodavatele a odpovídáte za jejich práci vůči objednateli?","example":"Subdodavatel způsobí škodu na stavbě, ale nárok jde na hlavního dodavatele.","recommendation":"U stavebních a montážních firem vždy ověřit.","clientNote":"Ověřit odpovědnost za subdodavatele."},
-  {"id":"krizova_odpovednost","name":"Křížová odpovědnost","priority":"DŮLEŽITÉ","defaultLimit":"5 000 000 Kč","explanation":"Krytí škod mezi pojištěnými subjekty uvedenými ve smlouvě.","clientQuestion":"Má být ve smlouvě pojištěno více subjektů, které si mohou způsobit škodu navzájem?","example":"Mateřská a dceřiná společnost působí na jedné zakázce.","recommendation":"Důležité u skupin firem a projektových zakázek.","clientNote":"Doporučeno při více pojištěných subjektech."},
-  {"id":"demontaz_montaz","name":"Demontáž a montáž","priority":"KRITICKÉ","defaultLimit":"2 000 000 Kč","explanation":"Náklady na demontáž, montáž nebo výměnu vadného výrobku či práce.","clientQuestion":"Může být kvůli vadě nutné něco demontovat, vyměnit nebo znovu namontovat?","example":"Vadný díl je zabudovaný ve stroji a jeho výměna vyžaduje demontáž.","recommendation":"Zásadní u výroby, montáže a stavebních prací.","clientNote":"Důležité náklady spojené s odstraněním vadného plnění."},
-  {"id":"financni_skody","name":"Finanční škody","priority":"DŮLEŽITÉ","defaultLimit":"1 000 000 Kč","explanation":"Kryje finanční újmu vzniklou v návaznosti na pojištěnou škodu.","clientQuestion":"Může klient způsobit zákazníkovi finanční ztrátu, například zpožděním nebo vadou?","example":"Zákazník kvůli chybě nemůže provozovat zařízení a vznikne mu ztráta.","recommendation":"Doporučeno u B2B služeb, stavebních a výrobních firem.","clientNote":"Krytí vybraných finančních dopadů škody."},
-  {"id":"ekologicka_ujma","name":"Ekologická újma / znečištění","priority":"VOLITELNÉ","defaultLimit":"1 000 000 Kč","explanation":"Riziko úniku provozních kapalin, chemikálií nebo jiné kontaminace.","clientQuestion":"Pracujete s chemikáliemi, pohonnými hmotami, odpady nebo látkami ohrožujícími životní prostředí?","example":"Únik oleje ze stroje do půdy nebo kanalizace.","recommendation":"Vyhodnotit podle provozu, skladování a práce v terénu.","clientNote":"Ekologická rizika podle charakteru činnosti."},
-  {"id":"odpovednost_vyrobek","name":"Odpovědnost za výrobek","priority":"KRITICKÉ","defaultLimit":"10 000 000 Kč","explanation":"Kryje škody způsobené výrobkem po uvedení na trh.","clientQuestion":"Dodáváte výrobky nebo komponenty dalším firmám nebo koncovým zákazníkům?","example":"Vadný výrobek poškodí zařízení odběratele.","recommendation":"U výrobců povinně řešit.","clientNote":"Zásadní krytí pro výrobní firmy."},
-  {"id":"vadny_vyrobek","name":"Vadný výrobek","priority":"KRITICKÉ","defaultLimit":"5 000 000 Kč","explanation":"Riziko vady výrobku a návazných škod.","clientQuestion":"Může vadný výrobek poškodit jinou věc nebo způsobit škodu na zdraví?","example":"Vadná součástka způsobí poruchu celého stroje.","recommendation":"Řešit u každého výrobce a distributora.","clientNote":"Riziko vadného výrobku a následků."},
-  {"id":"nasledna_financni_skoda","name":"Následná finanční škoda","priority":"KRITICKÉ","defaultLimit":"5 000 000 Kč","explanation":"Finanční škoda vzniklá jako následek škody na věci nebo zdraví.","clientQuestion":"Může škoda způsobit zákazníkovi přerušení výroby, ztrátu zakázky nebo sankce?","example":"Vadný díl zastaví výrobní linku odběratele.","recommendation":"Zásadní u B2B výroby a dodávek do průmyslu.","clientNote":"Následné finanční dopady škody."},
-  {"id":"cista_financni_skoda","name":"Čistá finanční škoda","priority":"KRITICKÉ","defaultLimit":"1 000 000 Kč","explanation":"Finanční škoda, která nevznikla jako následek škody na zdraví nebo věci.","clientQuestion":"Můžete zákazníkovi způsobit finanční ztrátu bez poškození věci nebo zdraví?","example":"Chybná informace, opomenutí, organizační selhání nebo nedodržení termínu.","recommendation":"Důležité u služeb, bezpečnostních agentur, IT a odborných činností.","clientNote":"Krytí finančních škod bez fyzického poškození."},
-  {"id":"stazeni_vyrobku","name":"Stažení výrobku z trhu","priority":"KRITICKÉ","defaultLimit":"1 000 000 Kč","explanation":"Náklady na stažení vadného nebo nebezpečného výrobku z trhu.","clientQuestion":"Může nastat situace, kdy bude nutné stáhnout váš výrobek z trhu nebo od odběratelů?","example":"Vadná série výrobků musí být dohledána, stažena a nahrazena.","recommendation":"Řešit zejména u potravin, komponentů, automotive a sériové výroby.","clientNote":"Náklady na stažení výrobku z trhu."},
-  {"id":"spojeni_smiseni","name":"Spojení a smísení","priority":"KRITICKÉ","defaultLimit":"2 000 000 Kč","explanation":"Riziko, že vadný výrobek je spojen nebo smísen s jiným produktem a poškodí větší celek.","clientQuestion":"Jsou vaše výrobky zabudovávány, míchány nebo spojovány s dalšími výrobky?","example":"Vadná surovina znehodnotí celou šarži výrobku odběratele.","recommendation":"Zásadní u výroby komponentů, surovin a polotovarů.","clientNote":"Krytí rizik při zapracování výrobku do dalšího produktu."},
-  {"id":"export_usa_kanada","name":"Export / USA a Kanada","priority":"DLE POTŘEBY","defaultLimit":"Dle smluvního požadavku","explanation":"Územní rozsah a zvláštní riziko nároků ze zahraničí, zejména USA/Kanada.","clientQuestion":"Dodáváte výrobky nebo služby do zahraničí, zejména do USA nebo Kanady?","example":"Nárok zahraničního odběratele podle místního práva.","recommendation":"U exportu vždy ověřit územní rozsah a výluky.","clientNote":"Ověřit územní platnost pojištění."},
-  {"id":"strezene_objekty","name":"Škody na střežených objektech","priority":"KRITICKÉ","defaultLimit":"20 000 000 Kč","explanation":"Riziko škody na majetku, který je předmětem ostrahy.","clientQuestion":"Jaké objekty střežíte a jaká je hodnota chráněného majetku?","example":"Selhání ostrahy a škoda na objektu klienta.","recommendation":"U bezpečnostních agentur zásadní.","clientNote":"Odpovědnost za střežený majetek."},
-  {"id":"zamestnanci_skody","name":"Škody způsobené zaměstnanci","priority":"KRITICKÉ","defaultLimit":"10 000 000 Kč","explanation":"Riziko pochybení pracovníků, ostrahy, řidičů nebo obsluhy.","clientQuestion":"Mohou zaměstnanci způsobit škodu při výkonu služby u zákazníka?","example":"Pracovník poškodí zabezpečení, vybavení nebo majetek klienta.","recommendation":"Vždy řešit u agentur, služeb a provozů s prací u zákazníka.","clientNote":"Rizika pochybení zaměstnanců."},
-  {"id":"regresy","name":"Regresy","priority":"DŮLEŽITÉ","defaultLimit":"5 000 000 Kč","explanation":"Nároky zdravotních pojišťoven, zaměstnavatelů nebo jiných subjektů po škodě.","clientQuestion":"Může při vaší činnosti dojít k újmě na zdraví nebo pracovnímu úrazu třetí osoby?","example":"Zdravotní pojišťovna uplatní regres za náklady léčení.","recommendation":"Důležité u provozů s rizikem škody na zdraví.","clientNote":"Krytí vybraných regresních nároků."},
-  {"id":"klice_zabezpeceni","name":"Klíče a zabezpečení","priority":"KRITICKÉ","defaultLimit":"1 000 000 Kč","explanation":"Riziko ztráty klíčů, karet, kódů nebo selhání zabezpečení.","clientQuestion":"Přebíráte klíče, čipy, karty, kódy nebo přístupy k objektům klienta?","example":"Ztráta klíčů vyvolá nutnost výměny zámků a bezpečnostních systémů.","recommendation":"U bezpečnostních agentur a správy objektů zásadní.","clientNote":"Krytí rizika ztráty přístupových prostředků."},
-  {"id":"cmr","name":"Odpovědnost dopravce / CMR","priority":"KRITICKÉ","defaultLimit":"Dle hodnoty nákladu","explanation":"Odpovědnost silničního dopravce za přepravovaný náklad.","clientQuestion":"Přepravujete zboží pro cizí osoby a do jakých zemí?","example":"Poškození nebo ztráta zásilky během přepravy.","recommendation":"U autodopravců vždy řešit samostatně.","clientNote":"Odpovědnost za přepravovaný náklad."},
-  {"id":"naklad","name":"Škody na přepravovaném nákladu","priority":"KRITICKÉ","defaultLimit":"Dle maximální hodnoty jedné zásilky","explanation":"Riziko ztráty, poškození nebo odcizení nákladu.","clientQuestion":"Jaká je obvyklá a maximální hodnota jedné zásilky?","example":"Odcizení nákladu z vozidla nebo nehoda s poškozením zboží.","recommendation":"Limit odvozovat od reálné maximální hodnoty zásilky.","clientNote":"Limit musí odpovídat hodnotě přepravovaného zboží."},
-  {"id":"mezinarodni_doprava","name":"Mezinárodní doprava","priority":"DŮLEŽITÉ","defaultLimit":"20 000 000 Kč","explanation":"Rizika podle zahraničních tras, práva a smluvních požadavků.","clientQuestion":"Do kterých zemí jezdíte a jaké smluvní požadavky mají odběratelé?","example":"Přeprava v EU s odlišnými nároky a režimem odpovědnosti.","recommendation":"U mezinárodní dopravy vždy posoudit zvlášť.","clientNote":"Ověřit územní rozsah a smluvní podmínky přeprav."}
-]
+{
+  "stavebni": [
+    {
+      "id": "provoz",
+      "name": "Provozní odpovědnost",
+      "priority": "POVINNÉ",
+      "limit": "10 000 000 Kč",
+      "included": true,
+      "desc": "Základní krytí škod způsobených provozní činností klienta třetím osobám.",
+      "question": "Jaká je maximální možná škoda, kterou může firma způsobit při běžné činnosti?",
+      "reason": "Základní pilíř odpovědnostního programu."
+    },
+    {
+      "id": "vadna_prace",
+      "name": "Vadná práce po předání",
+      "priority": "KRITICKÉ",
+      "limit": "5 000 000 Kč",
+      "included": true,
+      "desc": "Kryje škody, kdy se chyba v provedené práci projeví až po dokončení a předání zákazníkovi.",
+      "question": "Může se chyba v práci projevit až po předání díla?",
+      "reason": "U stavebních a montážních činností zásadní krytí."
+    },
+    {
+      "id": "prevzate",
+      "name": "Věci převzaté",
+      "priority": "KRITICKÉ",
+      "limit": "2 000 000 Kč",
+      "included": true,
+      "desc": "Škody na věcech zákazníka, které klient převzal za účelem provedení činnosti.",
+      "question": "Přebíráte od zákazníků věci, materiál nebo zařízení k provedení práce?",
+      "reason": "Nutné u činností, kde klient pracuje s cizí věcí."
+    },
+    {
+      "id": "uzivane",
+      "name": "Věci užívané",
+      "priority": "DŮLEŽITÉ",
+      "limit": "1 000 000 Kč",
+      "included": true,
+      "desc": "Škody na věcech, které klient užívá, ale nevlastní.",
+      "question": "Používáte pronajaté stroje, zařízení, objekty nebo cizí techniku?",
+      "reason": "Důležité u práce na cizím majetku nebo pronájmů."
+    },
+    {
+      "id": "subdodavatele",
+      "name": "Subdodavatelé",
+      "priority": "KRITICKÉ",
+      "limit": "dle hlavního limitu",
+      "included": true,
+      "desc": "Riziko škod způsobených osobami, které se podílejí na plnění zakázky.",
+      "question": "Využíváte subdodavatele nebo externí pracovníky?",
+      "reason": "U stavebních a montážních firem vždy ověřit."
+    },
+    {
+      "id": "krizova",
+      "name": "Křížová odpovědnost",
+      "priority": "DŮLEŽITÉ",
+      "limit": "5 000 000 Kč",
+      "included": true,
+      "desc": "Škody mezi pojištěnými osobami nebo účastníky jednoho projektu.",
+      "question": "Pracujete na zakázkách společně s dalšími firmami ve skupině nebo sdružení?",
+      "reason": "Důležité u skupin firem a projektových zakázek."
+    },
+    {
+      "id": "demontaz",
+      "name": "Náklady na demontáž a montáž",
+      "priority": "KRITICKÉ",
+      "limit": "2 000 000 Kč",
+      "included": true,
+      "desc": "Náklady na odstranění vadného díla/výrobku a jeho opětovnou instalaci.",
+      "question": "Může být nutné kvůli vadě bourat, demontovat nebo znovu montovat část díla?",
+      "reason": "Zásadní u výroby, montáže a stavebních prací."
+    },
+    {
+      "id": "financni",
+      "name": "Finanční škody",
+      "priority": "DOPORUČENÉ",
+      "limit": "1 000 000 Kč",
+      "included": true,
+      "desc": "Škody finanční povahy, například zpoždění, nemožnost užívání nebo návazné náklady.",
+      "question": "Může vaše chyba způsobit klientovi finanční ztrátu bez přímé škody na věci?",
+      "reason": "Doporučeno u B2B služeb, stavebních a výrobních firem."
+    }
+  ],
+  "vyrobni": [
+    {
+      "id": "provoz",
+      "name": "Provozní odpovědnost",
+      "priority": "POVINNÉ",
+      "limit": "20 000 000 Kč",
+      "included": true,
+      "desc": "Základní krytí škod způsobených provozem výrobní firmy.",
+      "question": "Jaké škody může provoz způsobit třetím osobám?",
+      "reason": "Základ odpovědnostního programu."
+    },
+    {
+      "id": "vyrobek",
+      "name": "Odpovědnost za výrobek",
+      "priority": "KRITICKÉ",
+      "limit": "20 000 000 Kč",
+      "included": true,
+      "desc": "Škody způsobené vadným výrobkem po jeho uvedení do oběhu.",
+      "question": "Dodáváte výrobky dalším firmám nebo koncovým zákazníkům?",
+      "reason": "U výrobní firmy zásadní krytí."
+    },
+    {
+      "id": "nasledna",
+      "name": "Následná finanční škoda",
+      "priority": "KRITICKÉ",
+      "limit": "5 000 000 Kč",
+      "included": true,
+      "desc": "Finanční škoda navazující na škodu způsobenou výrobkem nebo vadným plněním.",
+      "question": "Může váš výrobek zastavit provoz odběratele nebo poškodit jeho výrobu?",
+      "reason": "Klíčové u B2B dodávek."
+    },
+    {
+      "id": "demontaz",
+      "name": "Náklady na demontáž a montáž",
+      "priority": "KRITICKÉ",
+      "limit": "5 000 000 Kč",
+      "included": true,
+      "desc": "Náklady na vyjmutí vadného výrobku a opětovné osazení bezvadného dílu.",
+      "question": "Je váš výrobek součástí jiného výrobku nebo stavby?",
+      "reason": "Zásadní u komponentů a subdodávek."
+    },
+    {
+      "id": "stazeni",
+      "name": "Stažení výrobku z trhu",
+      "priority": "DŮLEŽITÉ",
+      "limit": "2 000 000 Kč",
+      "included": true,
+      "desc": "Náklady související se stažením vadného výrobku z trhu.",
+      "question": "Může být při vadě nutné výrobek stahovat od zákazníků?",
+      "reason": "Ověřit hlavně u sériové výroby."
+    }
+  ],
+  "bezpecnostni": [
+    {
+      "id": "provoz",
+      "name": "Provozní odpovědnost",
+      "priority": "POVINNÉ",
+      "limit": "10 000 000 Kč",
+      "included": true,
+      "desc": "Základní krytí škod způsobených činností bezpečnostní agentury.",
+      "question": "Jaké objekty a hodnoty agentura střeží?",
+      "reason": "Základ pro všechny agentury."
+    },
+    {
+      "id": "strezene",
+      "name": "Škody na střeženém majetku",
+      "priority": "KRITICKÉ",
+      "limit": "20 000 000 Kč",
+      "included": true,
+      "desc": "Riziko škody na majetku, který je předmětem ostrahy.",
+      "question": "Jaká je hodnota střeženého majetku a objektů?",
+      "reason": "Hlavní riziko bezpečnostních služeb."
+    },
+    {
+      "id": "klice",
+      "name": "Ztráta klíčů / přístupových prostředků",
+      "priority": "KRITICKÉ",
+      "limit": "1 000 000 Kč",
+      "included": true,
+      "desc": "Náklady při ztrátě klíčů, čipů, kódů a nutnosti výměny zabezpečení.",
+      "question": "Přebíráte klíče, čipy, kódy nebo přístupové karty?",
+      "reason": "Velmi časté praktické riziko."
+    },
+    {
+      "id": "ciste_financni",
+      "name": "Čistá finanční škoda",
+      "priority": "KRITICKÉ",
+      "limit": "2 000 000 Kč",
+      "included": true,
+      "desc": "Finanční škoda bez přímé škody na věci nebo zdraví, například selhání služby.",
+      "question": "Může selhání pracovníka způsobit klientovi finanční ztrátu?",
+      "reason": "U ostrahy a režimových služeb velmi důležité."
+    }
+  ],
+  "autodopravce": [
+    {
+      "id": "provoz",
+      "name": "Provozní odpovědnost",
+      "priority": "POVINNÉ",
+      "limit": "10 000 000 Kč",
+      "included": true,
+      "desc": "Základní odpovědnost z provozní činnosti dopravce.",
+      "question": "Jaká vedlejší činnost kromě samotné dopravy je vykonávána?",
+      "reason": "Základní doplněk k dopravním krytím."
+    },
+    {
+      "id": "cmr",
+      "name": "Odpovědnost silničního dopravce / CMR",
+      "priority": "KRITICKÉ",
+      "limit": "dle hodnoty nákladu",
+      "included": true,
+      "desc": "Odpovědnost za škody na přepravovaném nákladu.",
+      "question": "Jaký druh a hodnota nákladu se obvykle přepravuje?",
+      "reason": "Klíčové pojištění dopravce."
+    },
+    {
+      "id": "nakladka",
+      "name": "Nakládka a vykládka",
+      "priority": "DŮLEŽITÉ",
+      "limit": "2 000 000 Kč",
+      "included": true,
+      "desc": "Škody při manipulaci s nákladem.",
+      "question": "Provádíte vlastní nakládku nebo vykládku?",
+      "reason": "Časté škody při manipulaci."
+    },
+    {
+      "id": "zahranici",
+      "name": "Mezinárodní doprava",
+      "priority": "DŮLEŽITÉ",
+      "limit": "dle tras",
+      "included": true,
+      "desc": "Územní rozsah a odlišné právní režimy přepravy.",
+      "question": "Do jakých zemí dopravce jezdí?",
+      "reason": "Nutné pro správné nastavení územního rozsahu."
+    }
+  ]
+}
