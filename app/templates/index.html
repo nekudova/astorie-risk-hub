@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ASTORIE Business Risk Hub</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logoMark">A</div>
+      <div>
+        <div class="brandName">ASTORIE</div>
+        <div class="brandSub">Business Risk Hub</div>
+      </div>
+    </div>
+    <div class="badge">MVP 0.1 · odpovědnost podnikatele</div>
+  </header>
+
+  <main class="layout">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Poptávkový a srovnávací modul</p>
+        <h1>Chytrý průvodce podnikatelským pojištěním</h1>
+        <p class="lead">Vyberte typ klienta. Aplikace předvyplní typická rizika, otázky pro klienta a orientační doporučení limitů.</p>
+      </div>
+      <div class="heroCard">
+        <span>Další krok vývoje</span>
+        <strong>Ukládání poptávky + klientský výstup</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panelHead">
+        <div>
+          <h2>1. Výběr činnosti klienta</h2>
+          <p>Začínáme číselníkem oborů. Následně doplníme detailnější podčinnosti.</p>
+        </div>
+        <select id="activitySelect">
+          <option value="">Vyberte činnost…</option>
+          {% for a in activities %}
+          <option value="{{ a.id }}">{{ a.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="activityInfo" class="infoBox empty">
+        Vyberte činnost klienta. Zobrazí se rizikový profil a doporučené otázky.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panelHead">
+        <div>
+          <h2>2. Automaticky navržená rizika</h2>
+          <p>Poradce rizika potvrzuje, upravuje nebo odebere. Aplikace nejedná za poradce, ale odborně ho navádí.</p>
+        </div>
+      </div>
+      <div id="risksGrid" class="risksGrid"></div>
+    </section>
+  </main>
+
+  <footer>
+    ASTORIE a.s. · interní vývojový prototyp · petrolejová/oranžová identita
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

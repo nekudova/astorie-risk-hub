@@ -1,0 +1,30 @@
+[
+  {
+    "id": "stavebni_firma",
+    "name": "Stavební firma",
+    "riskLevel": "vysoké",
+    "description": "Práce na stavbách, u zákazníků, subdodavatelé, odpovědnost za vady a následné škody.",
+    "recommendedLimit": "10–30 mil. Kč, u větších zakázek 50+ mil. Kč"
+  },
+  {
+    "id": "vyrobni_firma",
+    "name": "Výrobní firma",
+    "riskLevel": "vysoké",
+    "description": "Výrobek, vadná práce po předání, následné finanční škody, spojení/smísení, demontáž/montáž.",
+    "recommendedLimit": "20–50 mil. Kč, automotive/export často 50–200 mil. Kč"
+  },
+  {
+    "id": "bezpecnostni_agentura",
+    "name": "Bezpečnostní agentura",
+    "riskLevel": "vysoké",
+    "description": "Střežení objektů, lidský faktor, selhání služby, klíče, hotovost, cizí majetek.",
+    "recommendedLimit": "10–30 mil. Kč, velké objekty 50+ mil. Kč"
+  },
+  {
+    "id": "autodopravce",
+    "name": "Autodopravce",
+    "riskLevel": "střední až vysoké",
+    "description": "Přepravovaný náklad, CMR, zahraničí, regresy, finanční škody.",
+    "recommendedLimit": "5–20 mil. Kč podle nákladu a smluvních požadavků"
+  }
+]

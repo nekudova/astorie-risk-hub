@@ -1,0 +1,170 @@
+[
+  {
+    "id": "provozni_odpovednost",
+    "name": "Provozní odpovědnost",
+    "priority": "povinné",
+    "explain": "Základní krytí škod způsobených provozem podnikání.",
+    "question": "Může klient při své činnosti způsobit škodu na zdraví nebo věci třetí osoby?",
+    "example": "Zaměstnanec poškodí majetek zákazníka při práci.",
+    "limit_hint": "min. 5–10 mil. Kč, u rizikových provozů více",
+    "activities": [
+      "stavebni_firma",
+      "vyrobni_firma",
+      "bezpecnostni_agentura",
+      "autodopravce"
+    ]
+  },
+  {
+    "id": "vadna_prace",
+    "name": "Vadná práce po předání",
+    "priority": "kritické",
+    "explain": "Škoda se projeví až po dokončení a předání práce.",
+    "question": "Může se chyba v práci projevit až po předání zákazníkovi?",
+    "example": "Špatně provedená montáž později způsobí škodu na objektu.",
+    "limit_hint": "obvykle jako sublimit z hlavního limitu",
+    "activities": [
+      "stavebni_firma",
+      "vyrobni_firma"
+    ]
+  },
+  {
+    "id": "vyrobek",
+    "name": "Odpovědnost za výrobek",
+    "priority": "kritické",
+    "explain": "Krytí škody způsobené vadným výrobkem dodaným klientem.",
+    "question": "Dodává klient výrobky, díly nebo komponenty dalším zákazníkům?",
+    "example": "Vadný díl poškodí zařízení odběratele.",
+    "limit_hint": "10–50 mil. Kč, u automotive/export více",
+    "activities": [
+      "vyrobni_firma"
+    ]
+  },
+  {
+    "id": "nasledna_financni",
+    "name": "Následná finanční škoda",
+    "priority": "důležité",
+    "explain": "Finanční újma navazující na škodu na věci nebo zdraví.",
+    "question": "Může škoda způsobit zákazníkovi další finanční ztrátu, odstávku nebo zpoždění?",
+    "example": "Kvůli vadnému dílu stojí výroba odběratele.",
+    "limit_hint": "sublimit dle profilu, typicky 1–10 mil. Kč",
+    "activities": [
+      "stavebni_firma",
+      "vyrobni_firma",
+      "bezpecnostni_agentura",
+      "autodopravce"
+    ]
+  },
+  {
+    "id": "cista_financni",
+    "name": "Čistá finanční škoda",
+    "priority": "důležité",
+    "explain": "Finanční škoda bez přímého poškození věci nebo zdraví.",
+    "question": "Může klient způsobit zákazníkovi čistě finanční újmu bez fyzické škody?",
+    "example": "Chybné jednání způsobí smluvní ztrátu nebo pokutu.",
+    "limit_hint": "typicky 0,5–5 mil. Kč, u služeb více",
+    "activities": [
+      "stavebni_firma",
+      "vyrobni_firma",
+      "bezpecnostni_agentura"
+    ]
+  },
+  {
+    "id": "veci_prevzate",
+    "name": "Cizí věci převzaté",
+    "priority": "kritické",
+    "explain": "Věci, které klient převzal od zákazníka za účelem práce, opravy nebo služby.",
+    "question": "Přebírá klient věci zákazníků do své péče?",
+    "example": "Poškození převzatého zařízení zákazníka.",
+    "limit_hint": "dle hodnoty převzatých věcí",
+    "activities": [
+      "stavebni_firma",
+      "bezpecnostni_agentura"
+    ]
+  },
+  {
+    "id": "veci_uzivane",
+    "name": "Cizí věci užívané",
+    "priority": "důležité",
+    "explain": "Cizí věci, které klient oprávněně používá.",
+    "question": "Používá klient cizí zařízení, prostory, stroje nebo dopravní prostředky?",
+    "example": "Poškození pronajatého stroje.",
+    "limit_hint": "dle hodnoty používaných věcí",
+    "activities": [
+      "stavebni_firma"
+    ]
+  },
+  {
+    "id": "krizova_odpovednost",
+    "name": "Křížová odpovědnost / propojené osoby",
+    "priority": "důležité",
+    "explain": "Krytí škod mezi spolupojištěnými nebo propojenými subjekty.",
+    "question": "Má klient více propojených společností nebo spolupojištěných osob?",
+    "example": "Škoda mezi sesterskými společnostmi.",
+    "limit_hint": "sjednat výslovně dle struktury klienta",
+    "activities": [
+      "stavebni_firma",
+      "vyrobni_firma"
+    ]
+  },
+  {
+    "id": "demontaz_montaz",
+    "name": "Demontáž a montáž vadného výrobku",
+    "priority": "kritické",
+    "explain": "Náklady na odstranění vadného výrobku a montáž bezvadného výrobku.",
+    "question": "Může vadný výrobek vyžadovat výměnu, demontáž nebo opětovnou montáž?",
+    "example": "Vadná součást musí být vyjmuta z většího celku.",
+    "limit_hint": "kritické u výroby a montáží",
+    "activities": [
+      "stavebni_firma",
+      "vyrobni_firma"
+    ]
+  },
+  {
+    "id": "spojeni_smiseni",
+    "name": "Spojení, smísení a další zpracování",
+    "priority": "kritické",
+    "explain": "Riziko, že vadný výrobek znehodnotí jinou věc nebo celek.",
+    "question": "Stává se výrobek klienta součástí jiného výrobku nebo celku?",
+    "example": "Vadná surovina znehodnotí celou výrobní dávku.",
+    "limit_hint": "u výrobních firem zásadní",
+    "activities": [
+      "vyrobni_firma"
+    ]
+  },
+  {
+    "id": "stazeni_vyrobku",
+    "name": "Stažení výrobku z trhu",
+    "priority": "doporučené",
+    "explain": "Náklady na recall vadných nebo nebezpečných výrobků.",
+    "question": "Může být nutné výrobek stáhnout od odběratelů nebo z trhu?",
+    "example": "Série vadných dílů musí být stažena a vyměněna.",
+    "limit_hint": "u výroby a exportu významné",
+    "activities": [
+      "vyrobni_firma"
+    ]
+  },
+  {
+    "id": "cmr",
+    "name": "Odpovědnost dopravce / CMR",
+    "priority": "kritické",
+    "explain": "Odpovědnost za přepravovaný náklad, zejména v mezinárodní dopravě.",
+    "question": "Přepravuje klient zboží pro jiné osoby, včetně zahraničí?",
+    "example": "Poškození nebo ztráta nákladu během přepravy.",
+    "limit_hint": "dle hodnoty nákladu a smluvních požadavků",
+    "activities": [
+      "autodopravce"
+    ]
+  },
+  {
+    "id": "subdodavatele",
+    "name": "Subdodavatelé",
+    "priority": "kritické",
+    "explain": "Riziko odpovědnosti za osoby a firmy, které se podílejí na zakázce.",
+    "question": "Využívá klient subdodavatele nebo externí pracovníky?",
+    "example": "Subdodavatel způsobí škodu při realizaci zakázky.",
+    "limit_hint": "nutné řešit smluvně i pojistně",
+    "activities": [
+      "stavebni_firma"
+    ]
+  }
+]
