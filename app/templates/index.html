@@ -2,69 +2,105 @@
 <html lang="cs">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ASTORIE Business Risk Hub</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <div class="logoMark">A</div>
-      <div>
-        <div class="brandName">ASTORIE</div>
-        <div class="brandSub">Business Risk Hub</div>
-      </div>
-    </div>
-    <div class="badge">MVP 0.1 · odpovědnost podnikatele</div>
+    <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
+    <div class="pill">MVP 0.3 · klient + ARES + rizikový průvodce</div>
   </header>
 
-  <main class="layout">
+  <main class="page">
     <section class="hero">
       <div>
-        <p class="eyebrow">Poptávkový a srovnávací modul</p>
+        <div class="eyebrow">POPTÁVKOVÝ A SROVNÁVACÍ MODUL</div>
         <h1>Chytrý průvodce podnikatelským pojištěním</h1>
-        <p class="lead">Vyberte typ klienta. Aplikace předvyplní typická rizika, otázky pro klienta a orientační doporučení limitů.</p>
+        <p>Začneme klientem, načteme data z ARES, projdeme základní dotazník a aplikace navrhne typická rizika.</p>
       </div>
-      <div class="heroCard">
-        <span>Další krok vývoje</span>
-        <strong>Ukládání poptávky + klientský výstup</strong>
+      <aside class="next-card"><small>DALŠÍ KROK VÝVOJE</small><b>Uložení poptávky + export klientského výstupu</b></aside>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div><h2>1. Klient a základní údaje</h2><p>Poradce zadá IČO, aplikace předvyplní veřejné údaje z ARES a doplní pracovní profil klienta.</p></div>
+        <button class="secondary" id="clearClientBtn">Vyčistit</button>
+      </div>
+      <div class="grid two">
+        <label>IČO
+          <div class="inline"><input id="ico" placeholder="např. 48293776" inputmode="numeric"><button id="loadAresBtn">Načíst z ARES</button></div>
+          <span id="aresStatus" class="hint"></span>
+        </label>
+        <label>Název klienta <input id="clientName" placeholder="Doplní se z ARES nebo ručně"></label>
+        <label>Sídlo <input id="clientAddress" placeholder="Doplní se z ARES nebo ručně"></label>
+        <label>DIČ <input id="clientDic" placeholder="Doplní se z ARES, pokud je uvedeno"></label>
+        <label>Kontaktní osoba <input id="contactPerson" placeholder="jméno, funkce"></label>
+        <label>Telefon / e-mail <input id="contactInfo" placeholder="kontakt pro doplnění informací"></label>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panelHead">
-        <div>
-          <h2>1. Výběr činnosti klienta</h2>
-          <p>Začínáme číselníkem oborů. Následně doplníme detailnější podčinnosti.</p>
-        </div>
-        <select id="activitySelect">
-          <option value="">Vyberte činnost…</option>
-          {% for a in activities %}
-          <option value="{{ a.id }}">{{ a.name }}</option>
-          {% endfor %}
-        </select>
+    <section class="card">
+      <div class="section-head"><div><h2>2. Vstupní dotazník pro klienta</h2><p>Obecné otázky, které poradce vedou ještě před výběrem rizik. Odpovědi se propíšou do pracovního výstupu.</p></div></div>
+      <div class="grid three">
+        <label>Roční obrat <input id="turnover" placeholder="např. 25 mil. Kč"></label>
+        <label>Počet zaměstnanců <input id="employees" placeholder="např. 18"></label>
+        <label>Současná pojišťovna <input id="currentInsurer" placeholder="pokud existuje"></label>
+        <label>Hlavní činnost klienta <textarea id="mainActivity" placeholder="Co klient reálně dělá, ne jen zápis v rejstříku"></textarea></label>
+        <label>Vedlejší činnosti <textarea id="sideActivities" placeholder="Doplňkové práce, servis, montáž, prodej, skladování…"></textarea></label>
+        <label>Největší zakázky / odběratelé <textarea id="contracts" placeholder="B2B, veřejné zakázky, automotive, zahraničí…"></textarea></label>
       </div>
-
-      <div id="activityInfo" class="infoBox empty">
-        Vyberte činnost klienta. Zobrazí se rizikový profil a doporučené otázky.
+      <div class="question-grid">
+        <label class="check"><input type="checkbox" id="worksAtCustomer"> Pracuje u zákazníka / na cizím majetku</label>
+        <label class="check"><input type="checkbox" id="takesProperty"> Přebírá věci zákazníků</label>
+        <label class="check"><input type="checkbox" id="hasProduct"> Vyrábí / dodává výrobky</label>
+        <label class="check"><input type="checkbox" id="usesSubcontractors"> Používá subdodavatele</label>
+        <label class="check"><input type="checkbox" id="exports"> Má export / zahraniční odběratele</label>
+        <label class="check"><input type="checkbox" id="contractualLimits"> Má smluvní požadavky na limit pojištění</label>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panelHead">
-        <div>
-          <h2>2. Automaticky navržená rizika</h2>
-          <p>Poradce rizika potvrzuje, upravuje nebo odebere. Aplikace nejedná za poradce, ale odborně ho navádí.</p>
-        </div>
+    <section class="card">
+      <div class="section-head">
+        <div><h2>3. Výběr činnosti klienta</h2><p>Číselník oborů předvyplní rizikový profil, doporučené otázky a orientační limit.</p></div>
+        <select id="activitySelect"><option value="">Vyberte činnost…</option>{% for activity in activities %}<option value="{{ activity.id }}">{{ activity.name }}</option>{% endfor %}</select>
       </div>
-      <div id="risksGrid" class="risksGrid"></div>
+      <div id="activityProfile" class="profile empty">Vyberte činnost klienta. Zobrazí se rizikový profil a doporučené otázky.</div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div><h2>4. Automaticky navržená rizika</h2><p>Kliknutím otevřete detail. Poradce může upravit limit, poznámku, doporučení i stav.</p></div>
+        <button id="addRiskBtn" class="secondary">+ Přidat vlastní riziko</button>
+      </div>
+      <div id="riskGrid" class="risk-grid"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><div><h2>5. Pracovní klientský výstup</h2><p>První náhled textu pro poptávku, nabídku klientovi a později ZZJ.</p></div><button id="copyOutputBtn" class="secondary">Kopírovat text</button></div>
+      <textarea id="clientOutput" class="output" readonly></textarea>
     </section>
   </main>
 
-  <footer>
-    ASTORIE a.s. · interní vývojový prototyp · petrolejová/oranžová identita
-  </footer>
+  <dialog id="riskDialog">
+    <form method="dialog" class="modal">
+      <div class="modal-head"><h3 id="modalTitle">Detail rizika</h3><button value="cancel" class="icon">×</button></div>
+      <label class="check"><input id="modalActive" type="checkbox"> Zahrnout do poptávky</label>
+      <label>Název rizika <input id="modalName"></label>
+      <label>Priorita <input id="modalPriority"></label>
+      <label>Doporučený / požadovaný limit <input id="modalLimit"></label>
+      <label>Otázka pro klienta <textarea id="modalQuestion"></textarea></label>
+      <label>Vysvětlení pro poradce <textarea id="modalExplanation"></textarea></label>
+      <label>Poznámka pro klienta <textarea id="modalClientNote"></textarea></label>
+      <label>Důvod doporučení <textarea id="modalRecommendation"></textarea></label>
+      <div class="modal-actions"><button value="cancel" class="secondary">Zavřít</button><button id="saveRiskBtn" value="default">Uložit změny</button></div>
+    </form>
+  </dialog>
 
-  <script src="/static/js/app.js"></script>
+  <script>
+    window.ASTORIE_ACTIVITIES = {{ activities_json | safe }};
+    window.ASTORIE_RISKS = {{ risks_json | safe }};
+  </script>
+  <script src="{{ url_for('static', path='/js/app.js') }}"></script>
 </body>
 </html>

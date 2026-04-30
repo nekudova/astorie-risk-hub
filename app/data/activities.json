@@ -5,17 +5,7 @@
     "riskLevel": "vysoké",
     "summary": "Práce na stavbách, u zákazníků, subdodavatelé, odpovědnost za vady a následné škody.",
     "limitHint": "10–30 mil. Kč, u větších zakázek 50+ mil. Kč",
-    "defaultRiskIds": [
-      "provozni_odpovednost",
-      "vadna_prace",
-      "prevzate_veci",
-      "uzivane_veci",
-      "subdodavatele",
-      "krizova_odpovednost",
-      "demontaz_montaz",
-      "financni_skody",
-      "ekologicka_ujma"
-    ]
+    "defaultRiskIds": ["provozni_odpovednost", "vadna_prace", "prevzate_veci", "uzivane_veci", "subdodavatele", "krizova_odpovednost", "demontaz_montaz", "financni_skody", "ekologicka_ujma"]
   },
   {
     "id": "vyrobni_firma",
@@ -23,46 +13,22 @@
     "riskLevel": "vysoké",
     "summary": "Výrobek, následné škody, spojení/smísení, stažení výrobku z trhu, export.",
     "limitHint": "10–20 mil. Kč, automotive/export 50–200 mil. Kč",
-    "defaultRiskIds": [
-      "provozni_odpovednost",
-      "odpovednost_vyrobek",
-      "vadny_vyrobek",
-      "nasledna_financni_skoda",
-      "cista_financni_skoda",
-      "stazeni_vyrobku",
-      "spojeni_smiseni",
-      "demontaz_montaz",
-      "export_usa_kanada"
-    ]
+    "defaultRiskIds": ["provozni_odpovednost", "odpovednost_vyrobek", "vadny_vyrobek", "nasledna_financni_skoda", "cista_financni_skoda", "stazeni_vyrobku", "spojeni_smiseni", "demontaz_montaz", "export_usa_kanada"]
   },
   {
     "id": "bezpecnostni_agentura",
     "name": "Bezpečnostní agentura",
     "riskLevel": "vysoké",
-    "summary": "Ostraha objektů, odpovědnost za klíče a zabezpečení, lidský faktor, finanční škody.",
-    "limitHint": "10–30 mil. Kč, velké objekty 50+ mil. Kč",
-    "defaultRiskIds": [
-      "provozni_odpovednost",
-      "strezene_objekty",
-      "zamestnanci_skody",
-      "cista_financni_skoda",
-      "regresy",
-      "prevzate_veci"
-    ]
+    "summary": "Odpovědnost za střežené objekty, zaměstnance, klíče, zabezpečení a finanční škody.",
+    "limitHint": "10–30 mil. Kč, u velkých objektů 50+ mil. Kč",
+    "defaultRiskIds": ["provozni_odpovednost", "strezene_objekty", "zamestnanci_skody", "cista_financni_skoda", "regresy", "klice_zabezpeceni"]
   },
   {
     "id": "autodopravce",
     "name": "Autodopravce",
-    "riskLevel": "střední až vysoké",
-    "summary": "Doprava zboží, odpovědnost dopravce, CMR, zahraničí, regresy.",
-    "limitHint": "5–10 mil. Kč, mezinárodní přeprava 20+ mil. Kč",
-    "defaultRiskIds": [
-      "provozni_odpovednost",
-      "cmr",
-      "naklad",
-      "financni_skody",
-      "regresy",
-      "zahranici"
-    ]
+    "riskLevel": "vysoké",
+    "summary": "Doprava zboží, CMR, škody na nákladu, mezinárodní provoz, regresy.",
+    "limitHint": "5–10 mil. Kč, mezinárodní doprava 20+ mil. Kč",
+    "defaultRiskIds": ["provozni_odpovednost", "cmr", "naklad", "financni_skody", "regresy", "mezinarodni_doprava"]
   }
 ]
