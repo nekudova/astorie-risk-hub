@@ -9,13 +9,13 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.11 · profesionální admin</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.12 · nabídky + stabilní navigace</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
     <section id="loginView" class="panel narrow">
       <h1>Přihlášení</h1>
-      <p class="muted">Interní vývojová verze. Přihlášení zatím používá demo uživatele, další verze napojí uživatele do DB.</p>
+      <p class="muted">Interní vývojová verze. Přihlášení používá uživatele z číselníku poradců.</p>
       <div class="grid2">
         <label>E-mail<input id="loginEmail" value="admin@astorie.local"></label>
         <label>Heslo<input id="loginPassword" type="password" value="Astorie2026!"></label>
@@ -25,135 +25,159 @@
     </section>
 
     <section id="appView" class="hidden">
-      <div class="hero">
-        <div><p class="eyebrow">Poptávkový a srovnávací modul</p><h1>Chytrý průvodce podnikatelským pojištěním</h1><p>Poradce založí klienta, upraví rizika, vybere pojišťovny a uloží více poptávek k jednomu klientovi.</p></div>
-        <div class="card small"><b>Další vývoj</b><br>seznam poptávek → nabídky pojišťoven → porovnání</div>
-      </div>
+      <nav class="app-nav">
+        <button class="nav-btn active" data-view="inquiryView">Poptávka</button>
+        <button class="nav-btn" data-view="offersView">Nabídky</button>
+        <button class="nav-btn" data-view="comparisonView">Porovnání</button>
+        <button class="nav-btn admin-only hidden" data-view="adminView">Admin</button>
+      </nav>
 
       <div class="toolbar">
         <button id="newInquiryBtn" class="secondary">+ Nová poptávka</button>
         <button id="saveInquiryBtn" class="primary">Uložit poptávku do DB</button>
         <button id="loadListBtn" class="secondary">Načíst uložené poptávky</button>
-        <button id="adminNavBtn" class="secondary hidden">Admin číselníky</button>
-        <button id="backToInquiryBtn" class="secondary hidden">Zpět do poptávky</button>
         <span id="saveStatus" class="status"></span>
       </div>
 
-      <section class="panel">
-        <h2>1. Poradce / makléř</h2>
-        <div class="grid3">
-          <label>Jméno<input id="adviserName"></label>
-          <label>E-mail<input id="adviserEmail"></label>
-          <label>Role<input id="adviserRole"></label>
-          <label>Společnost<input id="adviserCompany" value="ASTORIE a.s."></label>
-          <label>Registrace / status<input id="adviserRegistration" value="samostatný zprostředkovatel"></label>
-          <label>ID poptávky<input id="inquiryId" readonly placeholder="vznikne po uložení"></label>
+      <section id="inquiryView" class="app-section">
+        <div class="hero">
+          <div><p class="eyebrow">Poptávkový modul</p><h1>Chytrý průvodce podnikatelským pojištěním</h1><p>Poradce založí klienta, upraví rizika, vybere pojišťovny a připraví profesionální poptávku.</p></div>
+          <div class="card small"><b>Aktuální krok</b><br>poptávka → nabídky → porovnání → doporučení</div>
         </div>
-      </section>
 
-      <section class="panel">
-        <h2>2. Klient – základní identifikace</h2>
-        <div class="grid3">
-          <label>IČO klienta<input id="clientIco" placeholder="např. 48293776"></label>
-          <button id="aresBtn" class="secondary align-end">Načíst z ARES</button>
-          <label>Název klienta<input id="clientName"></label>
-          <label>Právní forma<input id="clientLegal"></label>
-          <label>Sídlo<input id="clientAddress"></label>
-          <label>Datová schránka<input id="clientDataBox"></label>
-          <label>Kontaktní osoba<input id="clientContact"></label>
-          <label>E-mail kontaktu<input id="clientEmail"></label>
-          <label>Telefon kontaktu<input id="clientPhone"></label>
-          <label>Web<input id="clientWeb"></label>
-        </div>
-        <p id="aresMsg" class="hint"></p>
-      </section>
-
-      <section class="panel">
-        <h2>3. Vstupní dotazník klienta</h2>
-        <div class="grid3">
-          <label>Požadovaný počátek pojištění<input id="insuranceStart" placeholder="např. 1. 7. 2026"></label>
-          <label>Požadovaná pojistná doba
-            <select id="insurancePeriodSelect"><option>1 rok</option><option>3 roky</option><option>neurčito</option><option value="custom">jiné – doplnit vlastní</option></select>
-          </label>
-          <label>Vlastní pojistná doba<input id="insurancePeriodCustom" placeholder="např. od 1.7.2026 do 31.12.2027"></label>
-          <label>Roční obrat<input id="turnover" placeholder="např. 25 000 000 Kč"></label>
-          <label>Počet zaměstnanců<input id="employees" placeholder="např. 25"></label>
-          <label>Územní rozsah
-            <select id="territorySelect"><option>Česká republika</option><option>Česká republika + EU</option><option>Evropa</option><option>Svět bez USA/Kanady</option><option value="custom">jiný – doplnit vlastní</option></select>
-          </label>
-          <label>Vlastní územní rozsah<input id="territoryCustom"></label>
-          <label>Export / zahraničí
-            <select id="exportSelect"><option>Ne</option><option>Ano – EU</option><option>Ano – mimo EU</option><option>Ano – USA/Kanada</option><option value="custom">jiné – doplnit vlastní</option></select>
-          </label>
-          <label>Vlastní export<input id="exportCustom"></label>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>4. Výběr činnosti klienta</h2>
-        <div class="grid2"><label>Typ klienta<select id="activitySelect"></select></label><div id="activityProfile" class="profile"></div></div>
-      </section>
-
-      <section class="panel">
-        <div class="section-head"><div><h2>5. Automaticky navržená rizika</h2><p>Kliknutím na riziko otevřeš detail. Poradce může upravit limit, poznámku, doporučení i stav.</p></div><button id="addRiskBtn" class="secondary">+ Přidat vlastní riziko</button></div>
-        <div id="risksGrid" class="risk-grid"></div>
-      </section>
-
-      <section class="panel">
-        <div class="section-head"><h2>6. Doplňující požadavky klienta</h2><button id="addRequirementBtn" class="secondary">+ Přidat požadavek</button></div>
-        <div id="requirementsList"></div>
-      </section>
-
-      <section class="panel">
-        <h2>7. Výběr pojišťoven pro poptávku</h2>
-        <div id="insurersList" class="checks"></div>
-      </section>
-
-      <section class="panel">
-        <h2>8. Uložené poptávky</h2>
-        <p class="muted">Každý klient může mít více poptávek. Otevřením se načte kompletní uložený stav.</p>
-        <div id="inquiriesList" class="list"></div>
-      </section>
-
-      <section class="panel document">
-        <div class="tabs"><button class="tab active" data-tab="insurerDoc">Poptávka pro pojišťovny</button><button class="tab" data-tab="clientDoc">Klientské shrnutí</button><button class="tab" data-tab="zzjDoc">Podklad pro ZZJ</button></div>
-        <div id="insurerDoc" class="doc-view"></div><div id="clientDoc" class="doc-view hidden"></div><div id="zzjDoc" class="doc-view hidden"></div>
-      </section>
-
-      <section id="adminPanel" class="panel admin-panel hidden">
-        <div class="admin-hero">
-          <div>
-            <p class="eyebrow">Administrace aplikace</p>
-            <h2>Admin číselníky</h2>
-            <p class="muted">Správa hodnot, které poradci používají ve formuláři. Změny se ukládají do databáze a po uložení se projeví v aplikaci.</p>
+        <section class="panel">
+          <h2>1. Poradce / makléř</h2>
+          <div class="grid3">
+            <label>Jméno<input id="adviserName"></label>
+            <label>E-mail<input id="adviserEmail"></label>
+            <label>Role<input id="adviserRole"></label>
+            <label>Společnost<input id="adviserCompany" value="ASTORIE a.s."></label>
+            <label>Registrace / status<input id="adviserRegistration" value="samostatný zprostředkovatel"></label>
+            <label>ID poptávky<input id="inquiryId" readonly placeholder="vznikne po uložení"></label>
           </div>
-          <div class="admin-status" id="adminSaveStatus">Připraveno k úpravám</div>
-        </div>
+        </section>
 
-        <div class="admin-tabs">
-          <button class="admin-tab active" data-admin-tab="insurersAdmin">Pojišťovny</button>
-          <button class="admin-tab" data-admin-tab="advisersAdmin">Poradci</button>
-          <button class="admin-tab" data-admin-tab="requirementsAdmin">Typy doplňujících údajů</button>
-        </div>
+        <section class="panel">
+          <h2>2. Klient – základní identifikace</h2>
+          <div class="grid3">
+            <label>IČO klienta<input id="clientIco" placeholder="např. 48293776"></label>
+            <button id="aresBtn" class="secondary align-end">Načíst z ARES</button>
+            <label>Název klienta<input id="clientName"></label>
+            <label>Právní forma<input id="clientLegal"></label>
+            <label>Sídlo<input id="clientAddress"></label>
+            <label>Datová schránka<input id="clientDataBox"></label>
+            <label>Kontaktní osoba<input id="clientContact"></label>
+            <label>E-mail kontaktu<input id="clientEmail"></label>
+            <label>Telefon kontaktu<input id="clientPhone"></label>
+            <label>Web<input id="clientWeb"></label>
+          </div>
+          <p id="aresMsg" class="hint"></p>
+        </section>
 
-        <div id="insurersAdmin" class="admin-section">
-          <div class="section-head"><div><h3>Pojišťovny pro poptávku</h3><p class="muted">Tento číselník se používá ve výběru pojišťoven, kterým poradce odešle poptávku.</p></div><button id="addInsurerAdmin" class="secondary">+ Přidat pojišťovnu</button></div>
-          <div class="admin-table" id="insurersAdminTable"></div>
-        </div>
+        <section class="panel">
+          <h2>3. Vstupní dotazník klienta</h2>
+          <div class="grid3">
+            <label>Požadovaný počátek pojištění<input id="insuranceStart" placeholder="např. 1. 7. 2026"></label>
+            <label>Požadovaná pojistná doba
+              <select id="insurancePeriodSelect"><option>1 rok</option><option>3 roky</option><option>neurčito</option><option value="custom">jiné – doplnit vlastní</option></select>
+            </label>
+            <label>Vlastní pojistná doba<input id="insurancePeriodCustom" placeholder="např. od 1.7.2026 do 31.12.2027"></label>
+            <label>Roční obrat<input id="turnover" placeholder="např. 25 000 000 Kč"></label>
+            <label>Počet zaměstnanců<input id="employees" placeholder="např. 25"></label>
+            <label>Územní rozsah
+              <select id="territorySelect"><option>Česká republika</option><option>Česká republika + EU</option><option>Evropa</option><option>Svět bez USA/Kanady</option><option value="custom">jiný – doplnit vlastní</option></select>
+            </label>
+            <label>Vlastní územní rozsah<input id="territoryCustom"></label>
+            <label>Export / zahraničí
+              <select id="exportSelect"><option>Ne</option><option>Ano – EU</option><option>Ano – mimo EU</option><option>Ano – USA/Kanada</option><option value="custom">jiné – doplnit vlastní</option></select>
+            </label>
+            <label>Vlastní export<input id="exportCustom"></label>
+          </div>
+        </section>
 
-        <div id="advisersAdmin" class="admin-section hidden">
-          <div class="section-head"><div><h3>Poradci / makléři</h3><p class="muted">Dočasně zde spravujeme přihlašovací údaje a role. Později doplníme bezpečné nastavení hesel.</p></div><button id="addAdviserAdmin" class="secondary">+ Přidat poradce</button></div>
-          <div class="admin-table" id="advisersAdminTable"></div>
-        </div>
+        <section class="panel">
+          <h2>4. Výběr činnosti klienta</h2>
+          <div class="grid2"><label>Typ klienta<select id="activitySelect"></select></label><div id="activityProfile" class="profile"></div></div>
+        </section>
 
-        <div id="requirementsAdmin" class="admin-section hidden">
-          <div class="section-head"><div><h3>Typy doplňujících informací</h3><p class="muted">Například výluky, zvláštní ujednání, škodní průběh nebo smluvní požadavky.</p></div><button id="addReqTypeAdmin" class="secondary">+ Přidat typ</button></div>
-          <div class="admin-table" id="reqTypesAdminTable"></div>
-        </div>
+        <section class="panel">
+          <div class="section-head"><div><h2>5. Automaticky navržená rizika</h2><p>Kliknutím na riziko otevřeš detail. Poradce může upravit limit, poznámku, doporučení i stav.</p></div><button id="addRiskBtn" class="secondary">+ Přidat vlastní riziko</button></div>
+          <div id="risksGrid" class="risk-grid"></div>
+        </section>
 
-        <div class="admin-actions">
-          <button id="saveAdminCatalogs" class="primary">Uložit admin číselníky do DB</button>
+        <section class="panel">
+          <div class="section-head"><h2>6. Doplňující požadavky klienta</h2><button id="addRequirementBtn" class="secondary">+ Přidat požadavek</button></div>
+          <div id="requirementsList"></div>
+        </section>
+
+        <section class="panel">
+          <h2>7. Výběr pojišťoven pro poptávku</h2>
+          <p class="muted">Vyber pojišťovny, kterým bude poptávka odeslána. Stejný výběr se použije v modulu Nabídky.</p>
+          <div id="insurersList" class="checks"></div>
+        </section>
+
+        <section class="panel">
+          <h2>8. Uložené poptávky</h2>
+          <p class="muted">Každý klient může mít více poptávek. Otevřením se načte kompletní uložený stav.</p>
+          <div id="inquiriesList" class="list"></div>
+        </section>
+
+        <section class="panel document">
+          <div class="tabs"><button class="tab active" data-tab="insurerDoc">Poptávka pro pojišťovny</button><button class="tab" data-tab="clientDoc">Klientské shrnutí</button><button class="tab" data-tab="zzjDoc">Podklad pro ZZJ</button></div>
+          <div id="insurerDoc" class="doc-view"></div><div id="clientDoc" class="doc-view hidden"></div><div id="zzjDoc" class="doc-view hidden"></div>
+        </section>
+      </section>
+
+      <section id="offersView" class="app-section hidden">
+        <div class="hero compact">
+          <div><p class="eyebrow">Zpracování nabídek</p><h1>Nabídky od pojišťoven</h1><p>Po obdržení nabídky poradce zadá pojistné, spoluúčast, poznámku a vyhodnotí krytí u jednotlivých rizik.</p></div>
+          <div class="card small"><b>Důležité</b><br>Názvosloví pojišťoven sjednotíme přes naše rizikové položky.</div>
         </div>
+        <section class="panel">
+          <div class="section-head"><div><h2>1. Pojišťovny v této poptávce</h2><p class="muted">Seznam vychází z výběru v poptávce. Když žádná není vybraná, zobrazuje se upozornění.</p></div><button id="refreshOffersBtn" class="secondary">Aktualizovat z výběru</button></div>
+          <div id="offersList"></div>
+        </section>
+      </section>
+
+      <section id="comparisonView" class="app-section hidden">
+        <div class="hero compact">
+          <div><p class="eyebrow">Srovnávací modul</p><h1>Porovnání nabídek</h1><p>Srovnáváme cenu, spoluúčast a krytí rizik. Cílem je podklad pro doporučení, ne jen nejlevnější nabídka.</p></div>
+          <div class="card small"><b>Další krok</b><br>automatické bodování kvality nabídky a doporučení.</div>
+        </div>
+        <section class="panel document">
+          <div id="comparisonDoc" class="doc-view"></div>
+        </section>
+      </section>
+
+      <section id="adminView" class="app-section hidden">
+        <section class="panel admin-panel">
+          <div class="admin-hero">
+            <div>
+              <p class="eyebrow">Administrace aplikace</p>
+              <h2>Admin číselníky</h2>
+              <p class="muted">Samostatná sekce mimo formulář poptávky. Změny se ukládají do databáze a používají se v celé aplikaci.</p>
+            </div>
+            <div class="admin-status" id="adminSaveStatus">Připraveno k úpravám</div>
+          </div>
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-admin-tab="insurersAdmin">Pojišťovny</button>
+            <button class="admin-tab" data-admin-tab="advisersAdmin">Poradci</button>
+            <button class="admin-tab" data-admin-tab="requirementsAdmin">Typy doplňujících údajů</button>
+          </div>
+          <div id="insurersAdmin" class="admin-section">
+            <div class="section-head"><div><h3>Pojišťovny pro poptávku</h3><p class="muted">Tento číselník se používá ve výběru pojišťoven a v modulu Nabídky.</p></div><button id="addInsurerAdmin" class="secondary">+ Přidat pojišťovnu</button></div>
+            <div class="admin-table" id="insurersAdminTable"></div>
+          </div>
+          <div id="advisersAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h3>Poradci / makléři</h3><p class="muted">Dočasně zde spravujeme přihlašovací údaje a role. Později doplníme bezpečné nastavení hesel.</p></div><button id="addAdviserAdmin" class="secondary">+ Přidat poradce</button></div>
+            <div class="admin-table" id="advisersAdminTable"></div>
+          </div>
+          <div id="requirementsAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h3>Typy doplňujících informací</h3><p class="muted">Například výluky, zvláštní ujednání, škodní průběh nebo smluvní požadavky.</p></div><button id="addReqTypeAdmin" class="secondary">+ Přidat typ</button></div>
+            <div class="admin-table" id="reqTypesAdminTable"></div>
+          </div>
+          <div class="admin-actions"><button id="saveAdminCatalogs" class="primary">Uložit admin číselníky do DB</button></div>
+        </section>
       </section>
     </section>
   </main>

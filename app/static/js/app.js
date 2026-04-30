@@ -1,6 +1,12 @@
 let CATALOG = null;
-let state = { id:null, adviser:{}, client:{}, questionnaire:{}, activity:null, risks:[], selected_insurers:[], additional_requirements:[], title:"", status:"rozpracováno" };
+let state = {
+  id:null,
+  adviser:{}, client:{}, questionnaire:{}, activity:null,
+  risks:[], selected_insurers:[], additional_requirements:[], offers:{},
+  title:"", status:"rozpracováno"
+};
 let currentRiskIndex = null;
+let currentUser = null;
 
 const $ = (id)=>document.getElementById(id);
 const text = (v)=> (v ?? "").toString().trim();
@@ -24,7 +30,7 @@ function bindLogin(){
   $('loginBtn').onclick = ()=>{
     const email = text($('loginEmail').value).toLowerCase();
     const pass = $('loginPassword').value;
-    const user = CATALOG.advisers.find(u=>u.email.toLowerCase()===email && u.password===pass);
+    const user = (CATALOG.advisers||[]).find(u=>(u.email||'').toLowerCase()===email && u.password===pass);
     if(!user){ alert('Neplatné přihlášení.'); return; }
     localStorage.setItem('arh_user', JSON.stringify(user));
     enterApp(user);
@@ -33,13 +39,17 @@ function bindLogin(){
 }
 
 function enterApp(user){
-  $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
+  currentUser = user;
+  $('loginView').classList.add('hidden');
+  $('appView').classList.remove('hidden');
+  $('logoutBtn').classList.remove('hidden');
   state.adviser = {name:user.name,email:user.email,role:user.role,company:user.company,registration:user.registration};
+  document.querySelectorAll('.admin-only').forEach(x=>x.classList.toggle('hidden', user.role !== 'admin'));
   fillAdviser();
   renderCatalogs();
   resetInquiry(false);
-  if(user.role === 'admin') { $('adminNavBtn').classList.remove('hidden'); renderAdmin(); }
-  showMainApp();
+  renderAdmin();
+  showView('inquiryView');
 }
 
 function fillAdviser(){
@@ -51,42 +61,56 @@ function fillAdviser(){
 }
 
 function bindUI(){
+  document.querySelectorAll('.nav-btn').forEach(btn=>btn.onclick=()=>showView(btn.dataset.view));
   $('aresBtn').onclick = loadAres;
   $('activitySelect').onchange = ()=>selectActivity($('activitySelect').value);
   $('addRiskBtn').onclick = addCustomRisk;
-  $('addRequirementBtn').onclick = addRequirement;
+  $('addRequirementBtn').onclick = ()=>addRequirement();
   $('saveInquiryBtn').onclick = saveInquiry;
   $('loadListBtn').onclick = loadInquiries;
   $('newInquiryBtn').onclick = ()=>resetInquiry(true);
+  $('refreshOffersBtn').onclick = renderOffers;
   $('closeModal').onclick = ()=>$('riskModal').classList.add('hidden');
   $('saveRiskDetail').onclick = saveRiskModal;
   document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>showTab(btn.dataset.tab));
-  if($('adminNavBtn')) $('adminNavBtn').onclick = showAdminApp;
-  if($('backToInquiryBtn')) $('backToInquiryBtn').onclick = showMainApp;
   document.querySelectorAll('.admin-tab').forEach(btn=>btn.onclick=()=>showAdminTab(btn.dataset.adminTab));
-  if($('addInsurerAdmin')) $('addInsurerAdmin').onclick = addAdminInsurer;
-  if($('addAdviserAdmin')) $('addAdviserAdmin').onclick = addAdminAdviser;
-  if($('addReqTypeAdmin')) $('addReqTypeAdmin').onclick = addAdminReqType;
-  if($('saveAdminCatalogs')) $('saveAdminCatalogs').onclick = saveAdminCatalogs;
-  ['insuranceStart','insurancePeriodSelect','insurancePeriodCustom','turnover','employees','territorySelect','territoryCustom','exportSelect','exportCustom','clientIco','clientName','clientLegal','clientAddress','clientDataBox','clientContact','clientEmail','clientPhone','clientWeb'].forEach(id=>$(id).addEventListener('input', updateDocs));
+  $('addInsurerAdmin').onclick = addAdminInsurer;
+  $('addAdviserAdmin').onclick = addAdminAdviser;
+  $('addReqTypeAdmin').onclick = addAdminReqType;
+  $('saveAdminCatalogs').onclick = saveAdminCatalogs;
+  ['insuranceStart','insurancePeriodSelect','insurancePeriodCustom','turnover','employees','territorySelect','territoryCustom','exportSelect','exportCustom','clientIco','clientName','clientLegal','clientAddress','clientDataBox','clientContact','clientEmail','clientPhone','clientWeb','adviserName','adviserEmail','adviserCompany','adviserRegistration'].forEach(id=>$(id).addEventListener('input', updateAll));
+}
+
+function showView(id){
+  collectForm();
+  document.querySelectorAll('.app-section').forEach(x=>x.classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  if(id==='offersView') renderOffers();
+  if(id==='comparisonView') renderComparison();
+  if(id==='adminView') renderAdmin();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function renderCatalogs(){
-  $('activitySelect').innerHTML = CATALOG.activities.map(a=>`<option value="${a.code}">${a.name}</option>`).join('');
-  $('insurersList').innerHTML = CATALOG.insurers.filter(i=>i.active).map(i=>`<label class="check"><input type="checkbox" value="${i.id}"> <b>${i.short}</b> ${i.name}</label>`).join('');
-  $('insurersList').querySelectorAll('input').forEach(cb=>cb.onchange=()=>{ collectForm(); updateDocs(); });
+  $('activitySelect').innerHTML = (CATALOG.activities||[]).map(a=>`<option value="${a.code}">${a.name}</option>`).join('');
+  $('insurersList').innerHTML = (CATALOG.insurers||[]).filter(i=>i.active).map(i=>`<label class="check"><input type="checkbox" value="${i.id}"> <b>${i.short||''}</b> ${i.name||''}</label>`).join('');
+  $('insurersList').querySelectorAll('input').forEach(cb=>cb.onchange=()=>{ syncSelectedInsurers(); renderOffers(); updateAll(); });
 }
 
 function resetInquiry(confirmIt){
   if(confirmIt && !confirm('Opravdu založit novou poptávku? Neuložené změny se ztratí.')) return;
   const user = state.adviser;
-  state = { id:null, adviser:user, client:{}, questionnaire:{}, activity:null, risks:[], selected_insurers:[], additional_requirements:[], title:"", status:"rozpracováno" };
+  state = { id:null, adviser:user, client:{}, questionnaire:{}, activity:null, risks:[], selected_insurers:[], additional_requirements:[], offers:{}, title:"", status:"rozpracováno" };
   $('inquiryId').value = '';
   ['clientIco','clientName','clientLegal','clientAddress','clientDataBox','clientContact','clientEmail','clientPhone','clientWeb','insuranceStart','insurancePeriodCustom','turnover','employees','territoryCustom','exportCustom'].forEach(id=>$(id).value='');
   $('insurancePeriodSelect').value='1 rok'; $('territorySelect').value='Česká republika'; $('exportSelect').value='Ne';
   $('insurersList').querySelectorAll('input').forEach(cb=>cb.checked=false);
   $('requirementsList').innerHTML='';
-  fillAdviser(); selectActivity(CATALOG.activities[0].code);
+  $('inquiriesList').innerHTML='';
+  fillAdviser();
+  selectActivity((CATALOG.activities&&CATALOG.activities[0]?.code) || 'construction');
+  updateAll();
 }
 
 async function loadAres(){
@@ -100,16 +124,17 @@ async function loadAres(){
     $('clientDataBox').value = d.data_box || '';
     $('aresMsg').textContent = 'Údaje z ARES byly načteny. Zkontrolujte je a doplňte chybějící informace.';
   }catch(e){ $('aresMsg').textContent = e.message; }
-  updateDocs();
+  updateAll();
 }
 
 function selectActivity(code){
-  const activity = CATALOG.activities.find(a=>a.code===code) || CATALOG.activities[0];
+  const activity = (CATALOG.activities||[]).find(a=>a.code===code) || (CATALOG.activities||[])[0];
+  if(!activity) return;
   state.activity = activity;
   $('activitySelect').value = activity.code;
-  $('activityProfile').innerHTML = `<h3>${activity.name}</h3><p>${activity.description}</p><p><b>Rizikovost:</b> ${activity.risk_level}</p><p><b>Orientační limit:</b> ${activity.limit_hint}</p>`;
-  state.risks = JSON.parse(JSON.stringify(CATALOG.risks[activity.code] || [])).map(r=>({...r, enabled: r.default_on !== false, note:''}));
-  renderRisks(); updateDocs();
+  $('activityProfile').innerHTML = `<h3>${activity.name}</h3><p>${activity.description||''}</p><p><b>Rizikovost:</b> ${activity.risk_level||''}</p><p><b>Orientační limit:</b> ${activity.limit_hint||''}</p>`;
+  state.risks = JSON.parse(JSON.stringify((CATALOG.risks||{})[activity.code] || [])).map(r=>({...r, enabled: r.default_on !== false, note:''}));
+  renderRisks(); updateAll();
 }
 
 function renderRisks(){
@@ -123,7 +148,7 @@ function openRisk(i){
 function saveRiskModal(){
   const r=state.risks[currentRiskIndex];
   r.enabled = $('modalEnabled').value === 'true'; r.limit=$('modalLimit').value; r.question=$('modalQuestion').value; r.description=$('modalDescription').value; r.reason=$('modalReason').value; r.note=$('modalNote').value;
-  $('riskModal').classList.add('hidden'); renderRisks(); updateDocs();
+  $('riskModal').classList.add('hidden'); renderRisks(); renderOffers(); updateAll();
 }
 function addCustomRisk(){
   state.risks.push({id:'custom_'+Date.now(),name:'Vlastní riziko',priority:'VLASTNÍ',enabled:true,description:'Doplňte popis rizika.',limit:'dle dohody s klientem a požadavků pojišťovny',question:'Doplňte otázku pro klienta.',reason:'Doplňte důvod doporučení.',note:''});
@@ -132,96 +157,150 @@ function addCustomRisk(){
 
 function addRequirement(req={}){
   const id='req_'+Date.now()+'_'+Math.random().toString(16).slice(2);
-  const types = CATALOG.requirementTypes.map(t=>`<option value="${t.id}" ${req.type===t.id?'selected':''}>${t.name}</option>`).join('');
+  const types = (CATALOG.requirementTypes||[]).map(t=>`<option value="${t.id}" ${req.type===t.id?'selected':''}>${t.name}</option>`).join('');
   const div=document.createElement('div'); div.className='req-row'; div.dataset.id=id;
   div.innerHTML = `<label>Typ<select class="reqType">${types}</select></label><label>Text požadavku<input class="reqText" value="${req.text||''}" placeholder="např. požadavek na vyloučení konkrétní výluky"></label><label>Propisovat<select class="reqOutput"><option value="all">všude</option><option value="insurer">jen pojišťovně</option><option value="client">jen klientovi</option><option value="zzj">jen ZZJ</option></select></label><button class="secondary reqDel">Smazat</button>`;
   $('requirementsList').appendChild(div);
-  div.querySelector('.reqDel').onclick=()=>{div.remove(); updateDocs();};
-  div.querySelectorAll('input,select').forEach(el=>el.oninput=updateDocs);
-  updateDocs();
+  if(req.output) div.querySelector('.reqOutput').value=req.output;
+  div.querySelector('.reqDel').onclick=()=>{div.remove(); updateAll();};
+  div.querySelectorAll('input,select').forEach(el=>el.oninput=updateAll);
+  updateAll();
 }
 
+function syncSelectedInsurers(){
+  state.selected_insurers = Array.from($('insurersList').querySelectorAll('input:checked')).map(cb=>cb.value);
+}
 function collectForm(){
   state.id = $('inquiryId').value ? Number($('inquiryId').value) : null;
   state.adviser = {name:$('adviserName').value,email:$('adviserEmail').value,role:$('adviserRole').value,company:$('adviserCompany').value,registration:$('adviserRegistration').value};
   state.client = {ico:$('clientIco').value,name:$('clientName').value,legal_form:$('clientLegal').value,address:$('clientAddress').value,data_box:$('clientDataBox').value,contact_person:$('clientContact').value,contact_email:$('clientEmail').value,contact_phone:$('clientPhone').value,website:$('clientWeb').value};
   const period = $('insurancePeriodSelect').value === 'custom' ? $('insurancePeriodCustom').value : $('insurancePeriodSelect').value;
   const territory = $('territorySelect').value === 'custom' ? $('territoryCustom').value : $('territorySelect').value;
-  const exportInfo = $('exportSelect').value === 'custom' ? $('exportCustom').value : $('exportSelect').value;
-  state.questionnaire = {insurance_start:$('insuranceStart').value, insurance_period:period, turnover:$('turnover').value, employees:$('employees').value, territory, export_info:exportInfo};
-  state.selected_insurers = Array.from($('insurersList').querySelectorAll('input:checked')).map(cb=>CATALOG.insurers.find(i=>i.id===cb.value));
-  state.additional_requirements = Array.from(document.querySelectorAll('.req-row')).map(row=>({type:row.querySelector('.reqType').value, typeName: CATALOG.requirementTypes.find(t=>t.id===row.querySelector('.reqType').value)?.name, text:row.querySelector('.reqText').value, output:row.querySelector('.reqOutput').value})).filter(r=>text(r.text));
+  const exp = $('exportSelect').value === 'custom' ? $('exportCustom').value : $('exportSelect').value;
+  state.questionnaire = {insurance_start:$('insuranceStart').value,insurance_period:period,turnover:$('turnover').value,employees:$('employees').value,territory,export_info:exp};
+  syncSelectedInsurers();
+  state.additional_requirements = Array.from(document.querySelectorAll('.req-row')).map(row=>({type:row.querySelector('.reqType').value,text:row.querySelector('.reqText').value,output:row.querySelector('.reqOutput').value})).filter(r=>text(r.text));
+  collectOffers(false);
   state.title = `Poptávka – ${state.client.name || 'klient'} – ${state.activity?.name || ''}`;
-  return state;
 }
+
+function insurerName(id){ const i=(CATALOG.insurers||[]).find(x=>x.id===id); return i ? `${i.short||''} ${i.name||''}`.trim() : id; }
+function activeRisks(){ return (state.risks||[]).filter(r=>r.enabled); }
+function selectedInsurers(){ return (state.selected_insurers||[]).map(id=>(CATALOG.insurers||[]).find(i=>i.id===id)).filter(Boolean); }
+
+function updateAll(){ collectForm(); updateDocs(); renderComparison(); }
+function showTab(id){
+  document.querySelectorAll('.doc-view').forEach(x=>x.classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
+}
+function renderReqRows(output){
+  const rows = state.additional_requirements.filter(r=>r.output==='all'||r.output===output).map(r=>`<tr><td>${labelReqType(r.type)}</td><td>${r.text}</td></tr>`).join('');
+  return rows || `<tr><td colspan="2">Bez dalších požadavků nebo poznámek.</td></tr>`;
+}
+function labelReqType(id){ return ((CATALOG.requirementTypes||[]).find(t=>t.id===id)||{}).name || id || 'Poznámka'; }
+function risksTable(){
+  return activeRisks().map(r=>`<tr><td><b>${r.name}</b></td><td>${r.reason||r.description||''}${r.note?`<br><span class="muted">Pozn.: ${r.note}</span>`:''}</td><td>${r.limit||''}</td></tr>`).join('') || `<tr><td colspan="3">Zatím nejsou vybrána rizika.</td></tr>`;
+}
+function updateDocs(){
+  collectForm();
+  const insurers = selectedInsurers().map(i=>`${i.short||''} – ${i.name||''}`).join(', ') || 'Zatím nevybráno';
+  const clientBlock = `<table><tr><th>Klient</th><td>${state.client.name||''}</td></tr><tr><th>IČO</th><td>${state.client.ico||''}</td></tr><tr><th>Sídlo</th><td>${state.client.address||''}</td></tr><tr><th>Kontakt</th><td>${state.client.contact_person||''} ${state.client.contact_email||''} ${state.client.contact_phone||''}</td></tr><tr><th>Činnost</th><td>${state.activity?.name||''}</td></tr><tr><th>Obrat / zaměstnanci</th><td>${state.questionnaire.turnover||''} / ${state.questionnaire.employees||''}</td></tr><tr><th>Územní rozsah</th><td>${state.questionnaire.territory||''}; export: ${state.questionnaire.export_info||''}</td></tr><tr><th>Pojistná doba</th><td>${state.questionnaire.insurance_period||''}; počátek: ${state.questionnaire.insurance_start||''}</td></tr><tr><th>Oslovené pojišťovny</th><td>${insurers}</td></tr></table>`;
+  $('insurerDoc').innerHTML = `<h2>Poptávka pro pojišťovny</h2><p class="muted">Tento výstup je určený pro zaslání vybraným pojišťovnám. Obsahuje jednotné názvosloví ASTORIE, aby bylo možné nabídky následně porovnat.</p>${clientBlock}<h3>Požadovaná rizika a limity</h3><table><thead><tr><th>Riziko</th><th>Proč jej řešíme</th><th>Orientační limit</th></tr></thead><tbody>${risksTable()}</tbody></table><h3>Doplňující požadavky pro pojišťovnu</h3><table><thead><tr><th>Typ</th><th>Požadavek / poznámka</th></tr></thead><tbody>${renderReqRows('insurer')}</tbody></table>`;
+  $('clientDoc').innerHTML = `<h2>Klientské shrnutí</h2><p>Na základě zjištěných údajů doporučujeme poptat níže uvedený rozsah pojištění. Konečné doporučení bude připraveno po vyhodnocení nabídek pojišťoven.</p>${clientBlock}<h3>Hlavní identifikovaná rizika</h3><table><thead><tr><th>Riziko</th><th>Proč je důležité</th><th>Limit</th></tr></thead><tbody>${risksTable()}</tbody></table><h3>Poznámky pro klienta</h3><table><tbody>${renderReqRows('client')}</tbody></table>`;
+  $('zzjDoc').innerHTML = `<h2>Podklad pro záznam z jednání</h2><table><tr><th>Poradce</th><td>${state.adviser.name||''} (${state.adviser.email||''})</td></tr><tr><th>Klient</th><td>${state.client.name||''}, IČO ${state.client.ico||''}</td></tr><tr><th>Požadavky a potřeby</th><td>Klient požaduje poptání podnikatelského pojištění pro činnost: ${state.activity?.name||''}. Územní rozsah: ${state.questionnaire.territory||''}. Pojistná doba: ${state.questionnaire.insurance_period||''}.</td></tr><tr><th>Oslovené pojišťovny</th><td>${insurers}</td></tr></table><h3>Rizika zahrnutá do doporučení</h3><table><thead><tr><th>Riziko</th><th>Důvod</th><th>Limit</th></tr></thead><tbody>${risksTable()}</tbody></table><h3>Doplňující poznámky pro ZZJ</h3><table><tbody>${renderReqRows('zzj')}</tbody></table>`;
+}
+
+function renderOffers(){
+  collectForm();
+  const insurers = selectedInsurers();
+  if(!insurers.length){ $('offersList').innerHTML='<div class="empty">Nejdříve vyber pojišťovny v poptávce.</div>'; return; }
+  insurers.forEach(i=>{ if(!state.offers[i.id]) state.offers[i.id]={premium:'',deductible:'',valid_until:'',status:'čekáme na nabídku',note:'',coverages:{}}; });
+  $('offersList').innerHTML = insurers.map(i=>offerCardHtml(i)).join('');
+  $('offersList').querySelectorAll('input,select,textarea').forEach(el=>el.oninput=()=>{ collectOffers(true); renderComparison(); });
+}
+function offerCardHtml(insurer){
+  const o = state.offers[insurer.id] || {};
+  const coverageRows = activeRisks().map(r=>{
+    const c=(o.coverages||{})[r.id]||{state:'nevyhodnoceno',limit:r.limit||'',note:''};
+    return `<div class="coverage-row" data-risk-id="${r.id}"><div><b>${r.name}</b><small>${r.limit||''}</small></div><select class="cov-state"><option ${c.state==='nevyhodnoceno'?'selected':''}>nevyhodnoceno</option><option ${c.state==='splněno'?'selected':''}>splněno</option><option ${c.state==='částečně'?'selected':''}>částečně</option><option ${c.state==='nesplněno'?'selected':''}>nesplněno</option><option ${c.state==='výluka'?'selected':''}>výluka</option></select><input class="cov-limit" value="${c.limit||''}" placeholder="limit v nabídce"><input class="cov-note" value="${c.note||''}" placeholder="poznámka / rozdíl"></div>`;
+  }).join('');
+  return `<div class="offer-card" data-insurer-id="${insurer.id}"><div class="section-head"><div><h3>${insurer.short||''} – ${insurer.name||''}</h3><p class="muted">Zadej údaje z nabídky. Krytí mapujeme na jednotná rizika ASTORIE.</p></div><span class="pill">nabídka</span></div><div class="grid4"><label>Stav nabídky<select class="off-status"><option ${o.status==='čekáme na nabídku'?'selected':''}>čekáme na nabídku</option><option ${o.status==='doručeno'?'selected':''}>doručeno</option><option ${o.status==='doplnit dotaz'?'selected':''}>doplnit dotaz</option><option ${o.status==='nepoptáno/nepodáno'?'selected':''}>nepoptáno/nepodáno</option></select></label><label>Roční pojistné<input class="off-premium" value="${o.premium||''}" placeholder="např. 48 000 Kč"></label><label>Spoluúčast<input class="off-deductible" value="${o.deductible||''}" placeholder="např. 10 000 Kč"></label><label>Platnost nabídky<input class="off-valid" value="${o.valid_until||''}" placeholder="např. 30. 6. 2026"></label></div><label>Poznámka k nabídce<textarea class="off-note" placeholder="silné/slabé stránky, dotazy na pojišťovnu, výluky...">${o.note||''}</textarea></label><h4>Krytí podle jednotných rizik</h4><div class="coverage-table"><div class="coverage-head"><b>Riziko</b><b>Stav</b><b>Limit v nabídce</b><b>Poznámka</b></div>${coverageRows}</div></div>`;
+}
+function collectOffers(updateState){
+  document.querySelectorAll('.offer-card').forEach(card=>{
+    const id=card.dataset.insurerId;
+    if(!state.offers[id]) state.offers[id]={coverages:{}};
+    state.offers[id].status=card.querySelector('.off-status')?.value || state.offers[id].status || '';
+    state.offers[id].premium=card.querySelector('.off-premium')?.value || '';
+    state.offers[id].deductible=card.querySelector('.off-deductible')?.value || '';
+    state.offers[id].valid_until=card.querySelector('.off-valid')?.value || '';
+    state.offers[id].note=card.querySelector('.off-note')?.value || '';
+    state.offers[id].coverages={};
+    card.querySelectorAll('.coverage-row').forEach(row=>{
+      state.offers[id].coverages[row.dataset.riskId]={state:row.querySelector('.cov-state').value,limit:row.querySelector('.cov-limit').value,note:row.querySelector('.cov-note').value};
+    });
+  });
+}
+function renderComparison(){
+  collectForm();
+  const insurers = selectedInsurers();
+  if(!insurers.length){ $('comparisonDoc').innerHTML='<h2>Porovnání nabídek</h2><p class="muted">Nejdříve vyber pojišťovny v poptávce.</p>'; return; }
+  const head = `<tr><th>Kritérium / riziko</th>${insurers.map(i=>`<th>${i.short||i.name}</th>`).join('')}</tr>`;
+  const summaryRows = [
+    ['Stav nabídky', i=>state.offers[i.id]?.status||'čekáme na nabídku'],
+    ['Roční pojistné', i=>state.offers[i.id]?.premium||'—'],
+    ['Spoluúčast', i=>state.offers[i.id]?.deductible||'—'],
+    ['Platnost nabídky', i=>state.offers[i.id]?.valid_until||'—'],
+    ['Poznámka', i=>state.offers[i.id]?.note||'—']
+  ].map(([label,fn])=>`<tr><td><b>${label}</b></td>${insurers.map(i=>`<td>${fn(i)}</td>`).join('')}</tr>`).join('');
+  const riskRows = activeRisks().map(r=>`<tr><td><b>${r.name}</b><br><span class="muted">Požadavek: ${r.limit||''}</span></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; return `<td><b class="cov ${slug(c.state)}">${c.state||'nevyhodnoceno'}</b><br>${c.limit||''}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`).join('');
+  $('comparisonDoc').innerHTML = `<h2>Porovnání nabídek</h2><p class="muted">Srovnání je pracovní podklad pro doporučení klientovi. Nehodnotí pouze cenu, ale i splnění požadovaných rizik.</p><h3>Základní parametry</h3><table><tbody>${head}${summaryRows}</tbody></table><h3>Krytí rizik</h3><table><tbody>${head}${riskRows}</tbody></table>`;
+}
+function slug(v){ return (v||'').replaceAll('ě','e').replaceAll('š','s').replaceAll('č','c').replaceAll('ř','r').replaceAll('ž','z').replaceAll('ý','y').replaceAll('á','a').replaceAll('í','i').replaceAll('é','e').replaceAll('ů','u').replaceAll('ú','u').replace(/\s+/g,'-'); }
 
 async function saveInquiry(){
   collectForm();
-  if(!text(state.client.name)){ alert('Doplň název klienta.'); return; }
-  $('saveStatus').textContent = 'Ukládám...';
+  $('saveStatus').textContent='Ukládám...';
   try{
     const res = await api('/api/inquiries', {method:'POST', body:JSON.stringify(state)});
     if(res.id){ state.id=res.id; $('inquiryId').value=res.id; }
-    $('saveStatus').textContent = res.message || 'Uloženo.';
-    await loadInquiries();
-  }catch(e){ $('saveStatus').textContent = 'Chyba: '+e.message; }
+    $('saveStatus').textContent=res.message || 'Uloženo.';
+  }catch(e){ $('saveStatus').textContent='Chyba: '+e.message; }
 }
-
 async function loadInquiries(){
-  const box=$('inquiriesList'); box.innerHTML='Načítám...';
+  $('inquiriesList').innerHTML='Načítám...';
   try{
-    const res=await api('/api/inquiries');
-    if(!res.items.length){box.innerHTML='<p class="muted">Zatím nejsou uložené žádné poptávky.</p>'; return;}
-    box.innerHTML=res.items.map(it=>`<div class="item"><div><b>${it.title}</b><br><span class="muted">${it.client_name||''} · ${it.ico||''} · ${it.status||''} · ${it.updated_at ? new Date(it.updated_at).toLocaleString('cs-CZ') : ''}</span></div><button class="secondary" data-id="${it.id}">Otevřít</button></div>`).join('');
-    box.querySelectorAll('button').forEach(b=>b.onclick=()=>openInquiry(b.dataset.id));
-  }catch(e){ box.innerHTML='<p class="muted">Nepodařilo se načíst poptávky: '+e.message+'</p>'; }
+    const res = await api('/api/inquiries');
+    const items=res.items||[];
+    $('inquiriesList').innerHTML = items.length ? items.map(i=>`<div class="item"><div><b>#${i.id} ${i.title||''}</b><br><span class="muted">${i.client_name||''} · ${i.activity_name||''} · ${i.updated_at||''}</span></div><button class="secondary" data-id="${i.id}">Otevřít</button></div>`).join('') : '<p class="muted">Zatím nejsou uložené poptávky.</p>';
+    $('inquiriesList').querySelectorAll('button').forEach(b=>b.onclick=()=>openInquiry(b.dataset.id));
+  }catch(e){ $('inquiriesList').innerHTML='Chyba: '+e.message; }
 }
-
 async function openInquiry(id){
-  const res=await api('/api/inquiries/'+id); const item=res.item;
-  state = item; state.id = Number(id);
-  fillStateToForm(); renderRisks(); updateDocs(); window.scrollTo({top:0,behavior:'smooth'});
+  const res = await api('/api/inquiries/'+id);
+  applyState(res.item);
+  showView('inquiryView');
+  $('saveStatus').textContent='Poptávka načtena.';
 }
-function fillStateToForm(){
-  $('inquiryId').value=state.id||''; fillAdviser();
-  const c=state.client||{}; $('clientIco').value=c.ico||''; $('clientName').value=c.name||''; $('clientLegal').value=c.legal_form||''; $('clientAddress').value=c.address||''; $('clientDataBox').value=c.data_box||''; $('clientContact').value=c.contact_person||''; $('clientEmail').value=c.contact_email||''; $('clientPhone').value=c.contact_phone||''; $('clientWeb').value=c.website||'';
-  const q=state.questionnaire||{}; $('insuranceStart').value=q.insurance_start||''; $('insurancePeriodSelect').value=['1 rok','3 roky','neurčito'].includes(q.insurance_period)?q.insurance_period:'custom'; $('insurancePeriodCustom').value=$('insurancePeriodSelect').value==='custom'?q.insurance_period||'':''; $('turnover').value=q.turnover||''; $('employees').value=q.employees||''; $('territorySelect').value=['Česká republika','Česká republika + EU','Evropa','Svět bez USA/Kanady'].includes(q.territory)?q.territory:'custom'; $('territoryCustom').value=$('territorySelect').value==='custom'?q.territory||'':''; $('exportSelect').value=['Ne','Ano – EU','Ano – mimo EU','Ano – USA/Kanada'].includes(q.export_info)?q.export_info:'custom'; $('exportCustom').value=$('exportSelect').value==='custom'?q.export_info||'':'';
-  const act=CATALOG.activities.find(a=>a.code===(state.activity?.code || state.activity_code)); if(act){state.activity=act; $('activitySelect').value=act.code; $('activityProfile').innerHTML=`<h3>${act.name}</h3><p>${act.description}</p><p><b>Rizikovost:</b> ${act.risk_level}</p><p><b>Orientační limit:</b> ${act.limit_hint}</p>`;}
-  $('insurersList').querySelectorAll('input').forEach(cb=>cb.checked=(state.selected_insurers||[]).some(i=>i && i.id===cb.value));
-  $('requirementsList').innerHTML=''; (state.additional_requirements||[]).forEach(addRequirement);
+function applyState(s){
+  state = {...state, ...s, offers:s.offers||{}};
+  $('inquiryId').value = state.id || '';
+  fillAdviser();
+  $('clientIco').value=state.client?.ico||''; $('clientName').value=state.client?.name||''; $('clientLegal').value=state.client?.legal_form||''; $('clientAddress').value=state.client?.address||''; $('clientDataBox').value=state.client?.data_box||''; $('clientContact').value=state.client?.contact_person||''; $('clientEmail').value=state.client?.contact_email||''; $('clientPhone').value=state.client?.contact_phone||''; $('clientWeb').value=state.client?.website||'';
+  $('insuranceStart').value=state.questionnaire?.insurance_start||''; $('turnover').value=state.questionnaire?.turnover||''; $('employees').value=state.questionnaire?.employees||'';
+  setSelectOrCustom('insurancePeriodSelect','insurancePeriodCustom',state.questionnaire?.insurance_period||'1 rok'); setSelectOrCustom('territorySelect','territoryCustom',state.questionnaire?.territory||'Česká republika'); setSelectOrCustom('exportSelect','exportCustom',state.questionnaire?.export_info||'Ne');
+  const act=state.activity?.code || (CATALOG.activities||[])[0]?.code; if(act) { $('activitySelect').value=act; $('activityProfile').innerHTML=`<h3>${state.activity?.name||''}</h3><p>${state.activity?.description||''}</p>`; }
+  renderRisks();
+  $('requirementsList').innerHTML=''; (state.additional_requirements||[]).forEach(r=>addRequirement(r));
+  $('insurersList').querySelectorAll('input').forEach(cb=>cb.checked=(state.selected_insurers||[]).includes(cb.value));
+  renderOffers(); updateAll();
+}
+function setSelectOrCustom(selectId, customId, value){
+  const sel=$(selectId); const exists=Array.from(sel.options).some(o=>o.value===value||o.text===value);
+  if(exists) sel.value=value; else {sel.value='custom'; $(customId).value=value;}
 }
 
-function updateDocs(){ collectForm(); renderDocs(); }
-function riskRows(){return (state.risks||[]).filter(r=>r.enabled).map(r=>`<tr><td><b>${r.name}</b></td><td>${r.reason||r.description||''}</td><td>${r.limit||''}</td></tr>`).join('') || '<tr><td colspan="3">Bez vybraných rizik.</td></tr>';}
-function reqList(output){ const rows=(state.additional_requirements||[]).filter(r=>r.output==='all'||r.output===output).map(r=>`<li><b>${r.typeName||r.type}:</b> ${r.text}</li>`).join(''); return rows?`<ul>${rows}</ul>`:'<p>Bez dalších požadavků.</p>';}
-function insurersText(){return (state.selected_insurers||[]).map(i=>`${i.short} – ${i.name}`).join('<br>') || 'Pojišťovny zatím nejsou vybrány.';}
-function renderDocs(){
-  const c=state.client||{}, q=state.questionnaire||{}, a=state.activity||{};
-  $('insurerDoc').innerHTML = `<h2>Poptávka na pojištění podnikatelských rizik</h2><h3>Klient</h3><table><tr><th>Název</th><td>${c.name||''}</td></tr><tr><th>IČO</th><td>${c.ico||''}</td></tr><tr><th>Sídlo</th><td>${c.address||''}</td></tr><tr><th>Kontakt</th><td>${c.contact_person||''} ${c.contact_email||''} ${c.contact_phone||''}</td></tr><tr><th>Činnost</th><td>${a.name||''}</td></tr><tr><th>Obrat / zaměstnanci</th><td>${q.turnover||''} / ${q.employees||''}</td></tr><tr><th>Území / export</th><td>${q.territory||''}; export: ${q.export_info||''}</td></tr><tr><th>Pojistná doba</th><td>${q.insurance_period||''}</td></tr></table><h3>Oslovené pojišťovny</h3><p>${insurersText()}</p><h3>Požadovaná rizika</h3><table><tr><th>Riziko</th><th>Důvod / poznámka</th><th>Limit</th></tr>${riskRows()}</table><h3>Doplňující požadavky</h3>${reqList('insurer')}`;
-  $('clientDoc').innerHTML = `<h2>Klientské shrnutí návrhu poptávky</h2><p>Tento pracovní výstup shrnuje rizika, která byla identifikována podle činnosti klienta a odpovědí ve vstupním dotazníku.</p><table><tr><th>Klient</th><td>${c.name||''}</td></tr><tr><th>Činnost</th><td>${a.name||''}</td></tr><tr><th>Územní rozsah</th><td>${q.territory||''}</td></tr></table><h3>Hlavní identifikovaná rizika</h3><table><tr><th>Riziko</th><th>Proč jej řešíme</th><th>Orientační limit</th></tr>${riskRows()}</table><h3>Doplňující požadavky klienta</h3>${reqList('client')}`;
-  $('zzjDoc').innerHTML = `<h2>Podklad pro záznam z jednání</h2><table><tr><th>Poradce</th><td>${state.adviser.name||''}, ${state.adviser.email||''}</td></tr><tr><th>Klient</th><td>${c.name||''}, IČO ${c.ico||''}</td></tr><tr><th>Požadavek klienta</th><td>Příprava poptávky podnikatelského pojištění pro oblast ${a.name||''}.</td></tr><tr><th>Oslovené pojišťovny</th><td>${insurersText()}</td></tr></table><h3>Důvody doporučených rizik</h3><table><tr><th>Riziko</th><th>Důvod</th><th>Limit</th></tr>${riskRows()}</table><h3>Doplňující informace do ZZJ</h3>${reqList('zzj')}`;
-}
-function showTab(id){ document.querySelectorAll('.doc-view').forEach(x=>x.classList.add('hidden')); $(id).classList.remove('hidden'); document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id)); }
-
-
-function showMainApp(){
-  document.querySelectorAll('#appView > section, #appView > .hero').forEach(el=>{
-    if(el.id !== 'adminPanel') el.classList.remove('hidden');
-  });
-  $('adminPanel').classList.add('hidden');
-  $('backToInquiryBtn')?.classList.add('hidden');
-  if($('adminNavBtn') && state.adviser?.role === 'admin') $('adminNavBtn').classList.remove('hidden');
-}
-function showAdminApp(){
-  document.querySelectorAll('#appView > section, #appView > .hero').forEach(el=>{
-    if(el.id !== 'adminPanel') el.classList.add('hidden');
-  });
-  $('adminPanel').classList.remove('hidden');
-  $('adminNavBtn')?.classList.add('hidden');
-  $('backToInquiryBtn')?.classList.remove('hidden');
-  renderAdmin();
-  window.scrollTo({top:0,behavior:'smooth'});
-}
 function showAdminTab(id){
   document.querySelectorAll('.admin-section').forEach(x=>x.classList.add('hidden'));
   $(id).classList.remove('hidden');
@@ -231,12 +310,12 @@ function renderAdmin(){ renderAdminInsurers(); renderAdminAdvisers(); renderAdmi
 function renderAdminInsurers(){
   const rows = (CATALOG.insurers||[]).map((i,idx)=>`<div class="admin-row insurer" data-idx="${idx}"><input class="adm-id" value="${i.id||''}" placeholder="id"><input class="adm-name" value="${i.name||''}" placeholder="název pojišťovny"><input class="adm-short" value="${i.short||''}" placeholder="zkratka"><select class="adm-active"><option value="true" ${i.active?'selected':''}>aktivní</option><option value="false" ${!i.active?'selected':''}>neaktivní</option></select><button class="secondary adm-del">Smazat</button></div>`).join('');
   $('insurersAdminTable').innerHTML = `<div class="admin-row insurer admin-head"><div>ID</div><div>Název</div><div>Zkratka</div><div>Stav</div><div></div></div>${rows}`;
-  $('insurersAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.insurers.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminInsurers(); renderCatalogs(); updateDocs(); });
+  $('insurersAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.insurers.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminInsurers(); renderCatalogs(); updateAll(); });
   $('insurersAdminTable').querySelectorAll('input,select').forEach(el=>el.oninput=collectAdminInsurers);
 }
 function collectAdminInsurers(){
   CATALOG.insurers = Array.from(document.querySelectorAll('#insurersAdminTable .admin-row.insurer:not(.admin-head)')).map(row=>({id:row.querySelector('.adm-id').value.trim() || ('ins_'+Date.now()), name:row.querySelector('.adm-name').value.trim(), short:row.querySelector('.adm-short').value.trim(), active:row.querySelector('.adm-active').value==='true'}));
-  renderCatalogs(); updateDocs();
+  renderCatalogs(); updateAll();
 }
 function addAdminInsurer(){ collectAdminInsurers(); CATALOG.insurers.push({id:'nova_'+Date.now(), name:'Nová pojišťovna', short:'', active:true}); renderAdminInsurers(); renderCatalogs(); }
 function renderAdminAdvisers(){
@@ -256,9 +335,7 @@ function renderAdminReqTypes(){
   $('reqTypesAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.requirementTypes.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminReqTypes(); });
   $('reqTypesAdminTable').querySelectorAll('input').forEach(el=>el.oninput=collectAdminReqTypes);
 }
-function collectAdminReqTypes(){
-  CATALOG.requirementTypes = Array.from(document.querySelectorAll('#reqTypesAdminTable .admin-row.reqtype:not(.admin-head)')).map(row=>({id:row.querySelector('.adm-id').value.trim() || ('typ_'+Date.now()), name:row.querySelector('.adm-name').value.trim()}));
-}
+function collectAdminReqTypes(){ CATALOG.requirementTypes = Array.from(document.querySelectorAll('#reqTypesAdminTable .admin-row.reqtype:not(.admin-head)')).map(row=>({id:row.querySelector('.adm-id').value.trim() || ('typ_'+Date.now()), name:row.querySelector('.adm-name').value.trim()})); }
 function addAdminReqType(){ collectAdminReqTypes(); CATALOG.requirementTypes.push({id:'novy_'+Date.now(), name:'Nový typ doplňující informace'}); renderAdminReqTypes(); }
 async function saveAdminCatalogs(){
   collectAdminInsurers(); collectAdminAdvisers(); collectAdminReqTypes();
@@ -266,7 +343,7 @@ async function saveAdminCatalogs(){
   try{
     const res = await api('/api/admin/catalogs', {method:'POST', body:JSON.stringify({actor_email:state.adviser?.email||'', insurers:CATALOG.insurers, advisers:CATALOG.advisers, requirementTypes:CATALOG.requirementTypes})});
     $('adminSaveStatus').textContent=res.message || 'Uloženo.';
-    renderCatalogs(); updateDocs();
+    renderCatalogs(); renderOffers(); updateAll();
   }catch(e){ $('adminSaveStatus').textContent='Chyba: '+e.message; }
 }
 

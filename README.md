@@ -1,17 +1,10 @@
-# ASTORIE Business Risk Hub
+# Centrum obchodních rizik ASTORIE
 
-MVP 0.10 – ukládání klientů a více poptávek do databáze Render PostgreSQL.
+MVP 0.12 – stabilní navigace, samostatný Admin, modul Nabídky a první Porovnání.
 
 ## Render
-Build command:
-```bash
-pip install -r requirements.txt
-```
 Start command:
+
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-Environment variable:
-```text
-DATABASE_URL=postgresql://...
 ```
