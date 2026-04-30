@@ -9,7 +9,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><div class="logo">A</div><div><div class="brand-title">ASTORIE</div><div class="brand-sub">Business Risk Hub</div></div></div>
-  <div class="version">MVP 0.6 · dotazník + pojišťovny</div>
+  <div class="version">MVP 0.7 · admin + vlastní volby</div>
 </header>
 
 <main class="page">
@@ -19,7 +19,7 @@
       <h1>Chytrý průvodce podnikatelským pojištěním</h1>
       <p>Začínáme klientem, makléřem a výběrem pojišťoven. Aplikace vede poradce otázkami, předvyplní rizika a připraví profesionální poptávkový dokument.</p>
     </div>
-    <aside class="hero-card"><b>Další krok vývoje</b><br>Uložení do databáze, přihlášení a zpracování nabídek pojišťoven</aside>
+    <aside class="hero-card"><b>Další krok vývoje</b><br>Admin číselníky, vlastní volby, doplňující požadavky a připravenost na databázi</aside>
   </section>
 
   <section class="card progress-card">
@@ -60,11 +60,11 @@
     <div class="subsection-title">Obecné údaje z poptávky</div>
     <div class="grid three">
       <label>Požadovaný počátek pojištění <input id="insuranceStart" type="date"></label>
-      <label>Požadovaná pojistná doba <select id="insuranceTerm"><option>1 rok</option><option>Na dobu neurčitou</option><option>Jiná</option></select></label>
+      <label>Požadovaná pojistná doba <select id="insuranceTerm"><option>1 rok</option><option>Na dobu neurčitou</option><option>3 roky</option><option>Jiná – doplnit vlastní text</option></select><input id="insuranceTermCustom" class="custom-field hidden" placeholder="např. od 1. 7. 2026 na 18 měsíců / dle nabídky pojišťovny"></label>
       <label>Roční obrat <input id="turnover" placeholder="např. 25 000 000 Kč"></label>
       <label>Počet zaměstnanců <input id="employees" placeholder="např. 18"></label>
-      <label>Územní rozsah činnosti <select id="territory"><option>Česká republika</option><option>ČR + EU</option><option>Evropa</option><option>Svět mimo USA/Kanadu</option><option>Svět včetně USA/Kanady</option></select></label>
-      <label>Export / práce v zahraničí <select id="export"><option>Ne</option><option>Ano – EU</option><option>Ano – mimo EU</option><option>Ano – USA/Kanada</option></select></label>
+      <label>Územní rozsah činnosti <select id="territory"><option>Česká republika</option><option>ČR + EU</option><option>Evropa</option><option>Svět mimo USA/Kanadu</option><option>Svět včetně USA/Kanady</option><option>Jiný rozsah – doplnit vlastní text</option></select><input id="territoryCustom" class="custom-field hidden" placeholder="např. ČR + Slovensko + vybrané zakázky v Německu"></label>
+      <label>Export / práce v zahraničí <select id="export"><option>Ne</option><option>Ano – EU</option><option>Ano – mimo EU</option><option>Ano – USA/Kanada</option><option>Jiný popis – doplnit vlastní text</option></select><input id="exportCustom" class="custom-field hidden" placeholder="např. občasné montáže v Rakousku, bez USA/Kanady"></label>
     </div>
     <div class="subsection-title">Činnost klienta</div>
     <div class="grid two">
@@ -76,6 +76,10 @@
     <div class="subsection-title">Rizikové otázky pro poradce</div>
     <div id="questionGrid" class="check-grid"></div>
     <label>Doplňující poznámka poradce k rizikovému profilu <textarea id="riskProfileNote"></textarea></label>
+    <div class="subsection-title">Doplňující požadavky klienta a informace pro poptávku</div>
+    <p class="muted">Sem poradce doplní vše, co se nevejde do standardních polí: požadavky na výluky, zvláštní ujednání, smluvní limity, škodní průběh, podklady pro pojišťovnu nebo poznámky do ZZJ.</p>
+    <div class="section-head compact"><div></div><button id="addClientInfoBtn">+ Přidat informaci / požadavek</button></div>
+    <div id="clientInfoList" class="entity-list"></div>
   </section>
 
   <section class="card">
@@ -89,7 +93,7 @@
   <section class="card">
     <div class="section-head">
       <div><h2>5. Výběr pojišťoven pro poptávku</h2><p>Poradce vybere, komu se poptávka odešle. Číselník je editovatelný v admin části.</p></div>
-      <button id="adminInsurersBtn">Správa číselníku</button>
+      <button id="adminInsurersBtn">Admin – číselníky</button>
     </div>
     <div id="insurerGrid" class="insurer-grid"></div>
   </section>
@@ -113,7 +117,17 @@
 
 <div id="riskModal" class="modal hidden"><div class="modal-card"><div class="modal-head"><h3 id="modalTitle">Riziko</h3><button id="closeRiskModal">×</button></div><div class="grid"><label><input type="checkbox" id="mIncluded"> Zahrnout do poptávky</label><label>Limit / sublimit <input id="mLimit"></label><label>Otázka pro klienta <textarea id="mQuestion"></textarea></label><label>Vysvětlení rizika <textarea id="mDesc"></textarea></label><label>Důvod doporučení <textarea id="mReason"></textarea></label><label>Poznámka pro klienta / pojišťovnu <textarea id="mClientNote"></textarea></label></div><div class="modal-actions"><button id="saveRisk">Uložit změny</button></div></div></div>
 
-<div id="adminModal" class="modal hidden"><div class="modal-card wide"><div class="modal-head"><h3>Admin – číselník pojišťoven</h3><button id="closeAdminModal">×</button></div><p class="muted">Změny se zatím ukládají do prohlížeče. V další etapě je přesuneme do databáze s přihlášením.</p><div id="adminInsurerRows" class="admin-rows"></div><div class="modal-actions"><button id="addInsurerRow">+ Přidat pojišťovnu</button><button id="saveInsurers">Uložit číselník</button></div></div></div>
+<div id="adminModal" class="modal hidden"><div class="modal-card wide"><div class="modal-head"><h3>Admin – číselníky aplikace</h3><button id="closeAdminModal">×</button></div><p class="muted">Změny se zatím ukládají do prohlížeče. V další etapě je přesuneme do databáze a navážeme na přihlášení uživatele.</p>
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-admin-tab="insurers">Pojišťovny</button>
+    <button class="admin-tab" data-admin-tab="brokers">Poradci / makléři</button>
+    <button class="admin-tab" data-admin-tab="info">Typy doplňujících informací</button>
+  </div>
+  <div id="adminPanelInsurers" class="admin-panel"><div id="adminInsurerRows" class="admin-rows"></div><div class="modal-actions"><button id="addInsurerRow">+ Přidat pojišťovnu</button></div></div>
+  <div id="adminPanelBrokers" class="admin-panel hidden"><div id="adminBrokerRows" class="admin-rows"></div><div class="modal-actions"><button id="addBrokerRow">+ Přidat poradce</button></div></div>
+  <div id="adminPanelInfo" class="admin-panel hidden"><div id="adminInfoRows" class="admin-rows"></div><div class="modal-actions"><button id="addInfoTemplateRow">+ Přidat typ informace</button></div></div>
+  <div class="modal-actions"><button id="saveAdminAll">Uložit admin nastavení</button></div>
+</div></div>
 
 <script src="/static/js/app.js"></script>
 </body>
