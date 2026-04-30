@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.12 · nabídky + stabilní navigace</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.13 · průvodce + náměty</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
@@ -29,6 +29,8 @@
         <button class="nav-btn active" data-view="inquiryView">Poptávka</button>
         <button class="nav-btn" data-view="offersView">Nabídky</button>
         <button class="nav-btn" data-view="comparisonView">Porovnání</button>
+        <button class="nav-btn" data-view="guideView">Průvodce</button>
+        <button class="nav-btn" data-view="suggestionsView">Náměty</button>
         <button class="nav-btn admin-only hidden" data-view="adminView">Admin</button>
       </nav>
 
@@ -147,6 +149,42 @@
         <section class="panel document">
           <div id="comparisonDoc" class="doc-view"></div>
         </section>
+      </section>
+
+      <section id="guideView" class="app-section hidden">
+        <div class="hero compact">
+          <div><p class="eyebrow">Asistent pro poradce</p><h1>Průvodce pro nováčky i zkušené poradce</h1><p>Nováček dostane jasné otázky, vysvětlení rizik a kontrolu připravenosti. Zkušený poradce může rychle přeskočit do detailů.</p></div>
+          <div class="card small"><b>Princip</b><br>Aplikace navádí, ale nerozhoduje za poradce. Každé doporučení lze upravit.</div>
+        </div>
+        <section class="panel">
+          <div class="section-head"><div><h2>1. Režim práce poradce</h2><p class="muted">Režim ovlivní množství nápovědy a kontrolních otázek.</p></div><button id="refreshGuideBtn" class="secondary">Aktualizovat průvodce</button></div>
+          <div class="mode-grid">
+            <label class="mode-card"><input type="radio" name="advisorMode" value="novice" checked> <span><b>Nováček</b>více vysvětlení, kontrolní otázky a upozornění</span></label>
+            <label class="mode-card"><input type="radio" name="advisorMode" value="expert"> <span><b>Zkušený poradce</b>stručný pracovní checklist bez zbytečných textů</span></label>
+          </div>
+        </section>
+        <section class="panel"><h2>2. Kontrola připravenosti poptávky</h2><div id="readinessBox" class="readiness"></div></section>
+        <section class="panel"><h2>3. Otázky, které má poradce položit klientovi</h2><p class="muted">Otázky se tvoří podle vybrané činnosti a zapnutých rizik.</p><div id="advisorQuestions" class="question-list"></div></section>
+        <section class="panel"><h2>4. Upozornění pro doporučení a ZZJ</h2><div id="guideWarnings" class="warning-list"></div></section>
+      </section>
+
+      <section id="suggestionsView" class="app-section hidden">
+        <div class="hero compact">
+          <div><p class="eyebrow">Společný vývoj nástroje</p><h1>Náměty od poradců</h1><p>Stávající poradci mohou posílat návrhy na chybějící rizika, otázky, pojišťovny, výluky nebo UX. Admin z toho později udělá číselník.</p></div>
+          <div class="card small"><b>Cíl</b><br>Poradci pomáhají rozvíjet know-how, nováčci z něj těží v průvodci.</div>
+        </div>
+        <section class="panel">
+          <h2>1. Nový námět</h2>
+          <div class="grid3">
+            <label>Typ námětu<select id="suggestionType"><option>Riziko</option><option>Otázka pro klienta</option><option>Výluka / omezení</option><option>Pojišťovna / produkt</option><option>Dokument / podmínky</option><option>UX / ovládání</option><option>Jiné</option></select></label>
+            <label>Oblast / činnost<input id="suggestionArea" placeholder="např. stavební firma, výrobní firma"></label>
+            <label>Priorita<select id="suggestionPriority"><option>běžné</option><option>důležité</option><option>kritické</option></select></label>
+          </div>
+          <label>Název námětu<input id="suggestionTitle" placeholder="stručný název"></label>
+          <label>Popis / návrh řešení<textarea id="suggestionDetail" placeholder="co chybí, kdy se to používá, jak by to mělo poradci pomoci"></textarea></label>
+          <button id="saveSuggestionBtn" class="primary">Uložit námět</button> <span id="suggestionStatus" class="status"></span>
+        </section>
+        <section class="panel"><div class="section-head"><div><h2>2. Seznam námětů</h2><p class="muted">Zobrazuje poslední uložené náměty.</p></div><button id="loadSuggestionsBtn" class="secondary">Načíst náměty</button></div><div id="suggestionsList" class="list"></div></section>
       </section>
 
       <section id="adminView" class="app-section hidden">

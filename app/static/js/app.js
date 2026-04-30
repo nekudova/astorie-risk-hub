@@ -78,6 +78,10 @@ function bindUI(){
   $('addAdviserAdmin').onclick = addAdminAdviser;
   $('addReqTypeAdmin').onclick = addAdminReqType;
   $('saveAdminCatalogs').onclick = saveAdminCatalogs;
+  if($('refreshGuideBtn')) $('refreshGuideBtn').onclick = renderGuide;
+  if($('saveSuggestionBtn')) $('saveSuggestionBtn').onclick = saveSuggestion;
+  if($('loadSuggestionsBtn')) $('loadSuggestionsBtn').onclick = loadSuggestions;
+  document.querySelectorAll('input[name=advisorMode]').forEach(r=>r.onchange=renderGuide);
   ['insuranceStart','insurancePeriodSelect','insurancePeriodCustom','turnover','employees','territorySelect','territoryCustom','exportSelect','exportCustom','clientIco','clientName','clientLegal','clientAddress','clientDataBox','clientContact','clientEmail','clientPhone','clientWeb','adviserName','adviserEmail','adviserCompany','adviserRegistration'].forEach(id=>$(id).addEventListener('input', updateAll));
 }
 
@@ -88,6 +92,8 @@ function showView(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
   if(id==='offersView') renderOffers();
   if(id==='comparisonView') renderComparison();
+  if(id==='guideView') renderGuide();
+  if(id==='suggestionsView') loadSuggestions();
   if(id==='adminView') renderAdmin();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -188,7 +194,7 @@ function insurerName(id){ const i=(CATALOG.insurers||[]).find(x=>x.id===id); ret
 function activeRisks(){ return (state.risks||[]).filter(r=>r.enabled); }
 function selectedInsurers(){ return (state.selected_insurers||[]).map(id=>(CATALOG.insurers||[]).find(i=>i.id===id)).filter(Boolean); }
 
-function updateAll(){ collectForm(); updateDocs(); renderComparison(); }
+function updateAll(){ collectForm(); updateDocs(); renderComparison(); if(document.getElementById('guideView') && !document.getElementById('guideView').classList.contains('hidden')) renderGuide(); }
 function showTab(id){
   document.querySelectorAll('.doc-view').forEach(x=>x.classList.add('hidden'));
   $(id).classList.remove('hidden');
@@ -348,3 +354,68 @@ async function saveAdminCatalogs(){
 }
 
 init();
+
+// ===================== V0.13: průvodce pro nováčky + náměty poradců =====================
+function currentAdvisorMode(){
+  const checked = document.querySelector('input[name="advisorMode"]:checked');
+  return checked ? checked.value : 'novice';
+}
+function renderGuide(){
+  collectForm();
+  const mode = currentAdvisorMode();
+  const checks = [
+    {label:'Klient', ok:!!text(state.client?.name), warn:!!text(state.client?.ico), hint:text(state.client?.name)?'Identifikace klienta je vyplněná.':'Doplňte název klienta nebo načtěte ARES.'},
+    {label:'Kontakt', ok:!!(text(state.client?.contact_person)||text(state.client?.contact_email)||text(state.client?.contact_phone)), hint:'Doplňte alespoň kontaktní osobu, e-mail nebo telefon.'},
+    {label:'Rizika', ok:activeRisks().length>0, hint: activeRisks().length ? `Vybráno ${activeRisks().length} rizik.` : 'Vyberte nebo přidejte alespoň jedno riziko.'},
+    {label:'Pojišťovny', ok:(state.selected_insurers||[]).length>0, hint:(state.selected_insurers||[]).length ? `Vybráno ${(state.selected_insurers||[]).length} pojišťoven.` : 'Vyberte pojišťovny pro poptávku.'},
+    {label:'Obrat', ok:!!text(state.questionnaire?.turnover), hint:'Obrat pomáhá orientačně posoudit limit.'},
+    {label:'Území', ok:!!text(state.questionnaire?.territory), hint:'Územní rozsah je důležitý pro nabídku i výluky.'},
+    {label:'Pojistná doba', ok:!!text(state.questionnaire?.insurance_period), hint:'Doplňte požadovanou dobu nebo vlastní variantu.'},
+    {label:'Nabídky', ok:Object.values(state.offers||{}).some(o=>text(o.premium)||text(o.status)==='doručeno'), hint:'Po doručení nabídek vyplňte modul Nabídky.'}
+  ];
+  $('readinessBox').innerHTML = checks.map(c=>`<div class="ready-card ${c.ok?'ok':(c.warn?'warn':'bad')}"><b>${c.ok?'✓':'!'} ${c.label}</b><span>${c.ok?c.hint:c.hint}</span></div>`).join('');
+  const baseQuestions = [
+    ['Jaká je hlavní činnost klienta a co přesně klient fakturuje?', 'Pomáhá ověřit, zda vybraná činnost odpovídá reálnému riziku.'],
+    ['Kde klient činnost vykonává – u sebe, u zákazníka, na stavbě, v zahraničí?', 'Mění se tím riziko odpovědnosti, územní rozsah i požadované doložky.'],
+    ['Má klient smlouvy, kde je předepsaný minimální limit nebo konkrétní pojištění?', 'Smluvní požadavky mají přednost před orientačním limitem.'],
+    ['Jaká je nejvyšší možná škoda z jedné události?', 'Tato odpověď je důležitější než samotný roční obrat.'],
+    ['Byly v minulosti škody nebo reklamace?', 'Škodní průběh ovlivňuje nabídku i doporučení.']
+  ];
+  const riskQuestions = activeRisks().map(r=>[r.question || `Je pro klienta relevantní riziko: ${r.name}?`, r.reason || r.description || 'Riziko bylo navrženo podle činnosti klienta.']);
+  const qs = mode==='expert' ? riskQuestions.slice(0,8) : baseQuestions.concat(riskQuestions).slice(0,18);
+  $('advisorQuestions').innerHTML = qs.map((q,i)=>`<div class="question-item"><b>${i+1}. ${q[0]}</b><span class="why">Proč se ptáme: ${q[1]}</span></div>`).join('') || '<p class="muted">Nejdříve vyberte činnost a rizika.</p>';
+  const warns = [];
+  if(!text(state.client?.contact_email) && !text(state.client?.contact_phone)) warns.push(['Kontakt na klienta','Bez kontaktu se špatně dokládá jednání a doplnění údajů.', false]);
+  if((state.selected_insurers||[]).length < 2) warns.push(['Pojišťovny','Pro kvalitní porovnání doporučujeme poptat více než jednu pojišťovnu.', false]);
+  if(activeRisks().some(r=>/výrobek|stažení|export|usa|kanada/i.test((r.name+' '+r.description+' '+r.reason)))) warns.push(['Vyšší expozice','Zkontrolujte export, výrobkovou odpovědnost, USA/Kanada a smluvní požadavky odběratelů.', true]);
+  if(!text(state.questionnaire?.turnover)) warns.push(['Obrat','Bez obratu je návrh limitu pouze velmi orientační.', false]);
+  $('guideWarnings').innerHTML = warns.length ? warns.map(w=>`<div class="warning-item ${w[2]?'critical':''}"><b>${w[0]}</b><p>${w[1]}</p></div>`).join('') : '<div class="warning-item"><b>Bez zásadních upozornění</b><p>Poptávka zatím neobsahuje zjevné kritické mezery. Přesto ji před odesláním zkontrolujte.</p></div>';
+}
+async function saveSuggestion(){
+  collectForm();
+  const payload = {
+    type: $('suggestionType').value,
+    area: $('suggestionArea').value || state.activity?.name || '',
+    priority: $('suggestionPriority').value,
+    title: $('suggestionTitle').value,
+    detail: $('suggestionDetail').value,
+    actor_email: state.adviser?.email || currentUser?.email || ''
+  };
+  if(!text(payload.title) || !text(payload.detail)){ $('suggestionStatus').textContent='Doplňte název a popis námětu.'; return; }
+  $('suggestionStatus').textContent='Ukládám...';
+  try{
+    const res = await api('/api/suggestions', {method:'POST', body:JSON.stringify(payload)});
+    $('suggestionStatus').textContent=res.message || 'Námět uložen.';
+    $('suggestionTitle').value=''; $('suggestionDetail').value='';
+    await loadSuggestions();
+  }catch(e){ $('suggestionStatus').textContent='Chyba: '+e.message; }
+}
+async function loadSuggestions(){
+  if(!$('suggestionsList')) return;
+  $('suggestionsList').innerHTML='Načítám...';
+  try{
+    const res = await api('/api/suggestions');
+    const items = res.items || [];
+    $('suggestionsList').innerHTML = items.length ? items.map(s=>`<div class="suggestion-card"><div class="meta">${s.type||''} · ${s.priority||''} · ${s.area||''}</div><h3>${s.title||''}</h3><p>${s.detail||''}</p><p class="muted">${s.actor_email||''} · ${s.created_at||''}</p></div>`).join('') : '<p class="muted">Zatím nejsou uložené žádné náměty.</p>';
+  }catch(e){ $('suggestionsList').innerHTML='Chyba: '+e.message; }
+}

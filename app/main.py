@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 BASE_DIR = os.path.dirname(__file__)
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-app = FastAPI(title="ASTORIE Business Risk Hub", version="0.12")
+app = FastAPI(title="ASTORIE Business Risk Hub", version="0.13")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -105,6 +105,22 @@ def init_db() -> bool:
                 );
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS feedback_suggestions (
+                    id SERIAL PRIMARY KEY,
+                    type TEXT,
+                    area TEXT,
+                    priority TEXT,
+                    title TEXT NOT NULL,
+                    detail TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'nový',
+                    actor_email TEXT,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+                """
+            )
             for key, filename in [
                 ('activities', 'activities.json'),
                 ('risks', 'risks.json'),
@@ -148,7 +164,7 @@ def health():
         ok = init_db()
     except Exception:
         ok = False
-    return {"ok": True, "database_connected": ok, "version": "0.12"}
+    return {"ok": True, "database_connected": ok, "version": "0.13"}
 
 
 def get_catalogs() -> Dict[str, Any]:
@@ -407,5 +423,65 @@ def get_inquiry(inquiry_id: int):
             if not row:
                 raise HTTPException(status_code=404, detail="Poptávka nebyla nalezena.")
             return {"ok": True, "item": row["full_payload"]}
+    finally:
+        conn.close()
+
+@app.post("/api/suggestions")
+async def save_suggestion(request: Request):
+    payload = await request.json()
+    title = (payload.get("title") or "").strip()
+    detail = (payload.get("detail") or "").strip()
+    if not title or not detail:
+        raise HTTPException(status_code=400, detail="Doplňte název a popis námětu.")
+    conn = _connect()
+    if not conn:
+        return {"ok": True, "db": False, "message": "Databáze není připojena. Námět nebyl trvale uložen."}
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO feedback_suggestions (type, area, priority, title, detail, actor_email)
+                VALUES (%s,%s,%s,%s,%s,%s)
+                RETURNING id;
+                """,
+                (
+                    payload.get("type") or "Jiné",
+                    payload.get("area") or "",
+                    payload.get("priority") or "běžné",
+                    title,
+                    detail,
+                    payload.get("actor_email") or "",
+                ),
+            )
+            saved_id = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO audit_log (entity_type, entity_id, action, actor_email, detail) VALUES (%s,%s,%s,%s,%s::jsonb)",
+                ("suggestion", saved_id, "create", payload.get("actor_email") or "", json.dumps({"title": title})),
+            )
+        return {"ok": True, "db": True, "id": saved_id, "message": "Námět byl uložen do databáze."}
+    finally:
+        conn.close()
+
+
+@app.get("/api/suggestions")
+def list_suggestions():
+    conn = _connect()
+    if not conn:
+        return {"ok": True, "db": False, "items": []}
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id, type, area, priority, title, detail, status, actor_email, created_at
+                FROM feedback_suggestions
+                ORDER BY created_at DESC
+                LIMIT 100;
+                """
+            )
+            rows = cur.fetchall()
+            for r in rows:
+                if r.get("created_at"):
+                    r["created_at"] = r["created_at"].isoformat()
+            return {"ok": True, "db": True, "items": rows}
     finally:
         conn.close()
