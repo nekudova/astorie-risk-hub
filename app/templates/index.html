@@ -8,11 +8,8 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">
-    <div class="logo">A</div>
-    <div><div class="brand-title">ASTORIE</div><div class="brand-sub">Business Risk Hub</div></div>
-  </div>
-  <div class="version">MVP 0.5 · profesionální výstupy</div>
+  <div class="brand"><div class="logo">A</div><div><div class="brand-title">ASTORIE</div><div class="brand-sub">Business Risk Hub</div></div></div>
+  <div class="version">MVP 0.6 · dotazník + pojišťovny</div>
 </header>
 
 <main class="page">
@@ -20,42 +17,90 @@
     <div>
       <div class="eyebrow">POPTÁVKOVÝ A SROVNÁVACÍ MODUL</div>
       <h1>Chytrý průvodce podnikatelským pojištěním</h1>
-      <p>Poradce vyplní klienta, aplikace navrhne rizika, připraví poptávku pro pojišťovny, klientské shrnutí i podklad pro ZZJ.</p>
+      <p>Začínáme klientem, makléřem a výběrem pojišťoven. Aplikace vede poradce otázkami, předvyplní rizika a připraví profesionální poptávkový dokument.</p>
     </div>
-    <aside class="hero-card"><b>Další krok vývoje</b><br>Ukládání spisu do databáze + zpracování nabídek pojišťoven</aside>
+    <aside class="hero-card"><b>Další krok vývoje</b><br>Uložení do databáze, přihlášení a zpracování nabídek pojišťoven</aside>
+  </section>
+
+  <section class="card progress-card">
+    <div><b>Připravenost poptávky</b><div class="progress"><span id="progressBar"></span></div></div>
+    <div id="progressText" class="progress-text">0 %</div>
   </section>
 
   <section class="card">
-    <h2>1. Klient a základní údaje</h2>
-    <div class="grid two">
+    <div class="section-head"><div><h2>1. Poradce / makléř</h2><p>Později se bude brát z přihlášení. Teď je editable demo, aby se propsal do poptávky.</p></div></div>
+    <div class="grid three">
+      <label>Jméno poradce <input id="brokerName"></label>
+      <label>E-mail poradce <input id="brokerEmail"></label>
+      <label>Telefon <input id="brokerPhone"></label>
+      <label>Role <input id="brokerRole"></label>
+      <label>Společnost <input id="brokerCompany"></label>
+      <label>Registrace / status <input id="brokerReg"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Klient – základní identifikace</h2>
+    <div class="grid three">
       <label>IČO klienta <div class="inline"><input id="ico" placeholder="např. 48293776"><button id="aresBtn">Načíst z ARES</button></div></label>
       <label>Název klienta <input id="clientName"></label>
+      <label>Právní forma <input id="legalForm"></label>
       <label>Sídlo <input id="address"></label>
+      <label>Datová schránka <input id="dataBox"></label>
       <label>Kontaktní osoba <input id="contactPerson"></label>
-      <label>Roční obrat <input id="turnover" placeholder="např. 25 000 000 Kč"></label>
-      <label>Počet zaměstnanců <input id="employees" placeholder="např. 18"></label>
+      <label>E-mail kontaktu <input id="contactEmail"></label>
+      <label>Telefon kontaktu <input id="contactPhone"></label>
+      <label>Web <input id="clientWeb"></label>
     </div>
     <div id="aresStatus" class="note"></div>
   </section>
 
   <section class="card">
-    <h2>2. Výběr činnosti klienta</h2>
+    <h2>3. Vstupní dotazník klienta</h2>
+    <div class="subsection-title">Obecné údaje z poptávky</div>
+    <div class="grid three">
+      <label>Požadovaný počátek pojištění <input id="insuranceStart" type="date"></label>
+      <label>Požadovaná pojistná doba <select id="insuranceTerm"><option>1 rok</option><option>Na dobu neurčitou</option><option>Jiná</option></select></label>
+      <label>Roční obrat <input id="turnover" placeholder="např. 25 000 000 Kč"></label>
+      <label>Počet zaměstnanců <input id="employees" placeholder="např. 18"></label>
+      <label>Územní rozsah činnosti <select id="territory"><option>Česká republika</option><option>ČR + EU</option><option>Evropa</option><option>Svět mimo USA/Kanadu</option><option>Svět včetně USA/Kanady</option></select></label>
+      <label>Export / práce v zahraničí <select id="export"><option>Ne</option><option>Ano – EU</option><option>Ano – mimo EU</option><option>Ano – USA/Kanada</option></select></label>
+    </div>
+    <div class="subsection-title">Činnost klienta</div>
     <div class="grid two">
       <label>Hlavní typ činnosti <select id="activitySelect"></select></label>
+      <label>Hlavní činnost vlastními slovy <textarea id="activityText" placeholder="Co klient skutečně dělá, pro koho, kde a jakým způsobem..."></textarea></label>
+      <label>Vedlejší činnosti <textarea id="secondaryActivities" placeholder="Doplňkové činnosti, servis, montáž, doprava, skladování..."></textarea></label>
       <div id="activityProfile" class="profile muted">Vyberte činnost klienta.</div>
     </div>
+    <div class="subsection-title">Rizikové otázky pro poradce</div>
+    <div id="questionGrid" class="check-grid"></div>
+    <label>Doplňující poznámka poradce k rizikovému profilu <textarea id="riskProfileNote"></textarea></label>
   </section>
 
   <section class="card">
     <div class="section-head">
-      <div><h2>3. Rizikový profil a úprava rizik</h2><p>Kliknutím na riziko otevřete detail. Poradce může upravit limit, doporučení i poznámku.</p></div>
-      <button id="addRiskBtn">+ Přidat vlastní riziko</button>
+      <div><h2>4. Další pojištěné osoby</h2><p>Podle vzoru z poptávkového Excelu – dceřiné firmy, propojené osoby, další subjekty v krytí.</p></div>
+      <button id="addInsuredBtn">+ Přidat osobu</button>
     </div>
+    <div id="insuredList" class="entity-list"></div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <div><h2>5. Výběr pojišťoven pro poptávku</h2><p>Poradce vybere, komu se poptávka odešle. Číselník je editovatelný v admin části.</p></div>
+      <button id="adminInsurersBtn">Správa číselníku</button>
+    </div>
+    <div id="insurerGrid" class="insurer-grid"></div>
+  </section>
+
+  <section class="card">
+    <div class="section-head"><div><h2>6. Rizikový profil a úprava rizik</h2><p>Kliknutím na riziko otevřete detail. Poradce může upravit limit, doporučení i poznámku.</p></div><button id="addRiskBtn">+ Přidat vlastní riziko</button></div>
     <div id="riskGrid" class="risk-grid"></div>
   </section>
 
   <section class="card">
-    <h2>4. Profesionální výstupy</h2>
+    <h2>7. Profesionální výstupy</h2>
     <div class="tabs">
       <button class="tab active" data-tab="insurer">Poptávka pro pojišťovny</button>
       <button class="tab" data-tab="client">Klientské shrnutí</button>
@@ -66,20 +111,9 @@
   </section>
 </main>
 
-<div id="modal" class="modal hidden">
-  <div class="modal-card">
-    <div class="modal-head"><h3 id="modalTitle">Riziko</h3><button id="closeModal">×</button></div>
-    <div class="grid">
-      <label><input type="checkbox" id="mIncluded"> Zahrnout do poptávky</label>
-      <label>Limit / sublimit <input id="mLimit"></label>
-      <label>Otázka pro klienta <textarea id="mQuestion"></textarea></label>
-      <label>Vysvětlení rizika <textarea id="mDesc"></textarea></label>
-      <label>Důvod doporučení <textarea id="mReason"></textarea></label>
-      <label>Poznámka pro klienta <textarea id="mClientNote"></textarea></label>
-    </div>
-    <div class="modal-actions"><button id="saveRisk">Uložit změny</button></div>
-  </div>
-</div>
+<div id="riskModal" class="modal hidden"><div class="modal-card"><div class="modal-head"><h3 id="modalTitle">Riziko</h3><button id="closeRiskModal">×</button></div><div class="grid"><label><input type="checkbox" id="mIncluded"> Zahrnout do poptávky</label><label>Limit / sublimit <input id="mLimit"></label><label>Otázka pro klienta <textarea id="mQuestion"></textarea></label><label>Vysvětlení rizika <textarea id="mDesc"></textarea></label><label>Důvod doporučení <textarea id="mReason"></textarea></label><label>Poznámka pro klienta / pojišťovnu <textarea id="mClientNote"></textarea></label></div><div class="modal-actions"><button id="saveRisk">Uložit změny</button></div></div></div>
+
+<div id="adminModal" class="modal hidden"><div class="modal-card wide"><div class="modal-head"><h3>Admin – číselník pojišťoven</h3><button id="closeAdminModal">×</button></div><p class="muted">Změny se zatím ukládají do prohlížeče. V další etapě je přesuneme do databáze s přihlášením.</p><div id="adminInsurerRows" class="admin-rows"></div><div class="modal-actions"><button id="addInsurerRow">+ Přidat pojišťovnu</button><button id="saveInsurers">Uložit číselník</button></div></div></div>
 
 <script src="/static/js/app.js"></script>
 </body>

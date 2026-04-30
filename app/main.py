@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +26,14 @@ async def api_risks(activity_id: str):
     data = load_json("risks.json")
     return data.get(activity_id, [])
 
+@app.get("/api/insurers")
+async def api_insurers():
+    return load_json("insurers.json")
+
+@app.get("/api/brokers")
+async def api_brokers():
+    return load_json("brokers.json")
+
 @app.get("/api/ares/{ico}")
 async def api_ares(ico: str):
     ico = "".join(ch for ch in ico if ch.isdigit())
@@ -39,15 +46,15 @@ async def api_ares(ico: str):
         if r.status_code != 200:
             return JSONResponse({"ok": False, "message": "Subjekt nebyl v ARES nalezen."}, status_code=404)
         d = r.json()
-        sidlo = d.get("sidlo", {})
-        adresa = d.get("sidlo", {}).get("textovaAdresa", "")
         return {
             "ok": True,
             "ico": d.get("ico", ico),
             "nazev": d.get("obchodniJmeno", ""),
-            "adresa": adresa,
+            "adresa": d.get("sidlo", {}).get("textovaAdresa", ""),
             "pravni_forma": d.get("pravniForma", ""),
-            "datova_schranka": d.get("datovaSchranka", "")
+            "datova_schranka": d.get("datovaSchranka", ""),
+            "datum_vzniku": d.get("datumVzniku", ""),
+            "cz_nace": d.get("czNace", [])
         }
-    except Exception as e:
+    except Exception:
         return JSONResponse({"ok": False, "message": "ARES se nepodařilo načíst. Zadejte údaje ručně."}, status_code=502)
