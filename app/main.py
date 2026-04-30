@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 BASE_DIR = os.path.dirname(__file__)
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-app = FastAPI(title="ASTORIE Business Risk Hub", version="0.10")
+app = FastAPI(title="ASTORIE Business Risk Hub", version="0.11")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -96,6 +96,28 @@ def init_db() -> bool:
                 );
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS catalog_settings (
+                    key TEXT PRIMARY KEY,
+                    value JSONB NOT NULL,
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+            for key, filename in [
+                ('activities', 'activities.json'),
+                ('risks', 'risks.json'),
+                ('insurers', 'insurers.json'),
+                ('advisers', 'advisers.json'),
+                ('requirementTypes', 'requirement_types.json'),
+            ]:
+                cur.execute("SELECT 1 FROM catalog_settings WHERE key=%s", (key,))
+                if not cur.fetchone():
+                    cur.execute(
+                        "INSERT INTO catalog_settings (key, value) VALUES (%s, %s::jsonb)",
+                        (key, json.dumps(load_json(filename))),
+                    )
         return True
     finally:
         conn.close()
@@ -126,18 +148,70 @@ def health():
         ok = init_db()
     except Exception:
         ok = False
-    return {"ok": True, "database_connected": ok, "version": "0.10"}
+    return {"ok": True, "database_connected": ok, "version": "0.11"}
 
 
-@app.get("/api/catalog")
-def catalog():
-    return {
+def get_catalogs() -> Dict[str, Any]:
+    fallback = {
         "activities": load_json("activities.json"),
         "risks": load_json("risks.json"),
         "insurers": load_json("insurers.json"),
         "advisers": load_json("advisers.json"),
         "requirementTypes": load_json("requirement_types.json"),
     }
+    conn = _connect()
+    if not conn:
+        return fallback
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT key, value FROM catalog_settings")
+            rows = cur.fetchall()
+            for row in rows:
+                fallback[row["key"]] = row["value"]
+            return fallback
+    except Exception as exc:
+        print(f"Catalog DB fallback: {exc}")
+        return fallback
+    finally:
+        conn.close()
+
+
+@app.get("/api/catalog")
+def catalog():
+    return get_catalogs()
+
+
+@app.get("/api/admin/catalogs")
+def admin_catalogs():
+    return {"ok": True, "catalogs": get_catalogs()}
+
+
+@app.post("/api/admin/catalogs")
+async def save_admin_catalogs(request: Request):
+    payload = await request.json()
+    conn = _connect()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Databáze není připojena.")
+    allowed = {"insurers", "advisers", "requirementTypes"}
+    try:
+        with conn, conn.cursor() as cur:
+            for key in allowed:
+                if key in payload:
+                    cur.execute(
+                        """
+                        INSERT INTO catalog_settings (key, value, updated_at)
+                        VALUES (%s, %s::jsonb, NOW())
+                        ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=NOW()
+                        """,
+                        (key, json.dumps(payload[key])),
+                    )
+            cur.execute(
+                "INSERT INTO audit_log (entity_type, action, actor_email, detail) VALUES (%s,%s,%s,%s::jsonb)",
+                ("catalog", "update", payload.get("actor_email") or "", json.dumps({"keys": list(payload.keys())})),
+            )
+        return {"ok": True, "message": "Admin číselníky byly uloženy do databáze."}
+    finally:
+        conn.close()
 
 
 @app.get("/api/ares/{ico}")

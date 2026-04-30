@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.10 · ukládání poptávek</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.11 · profesionální admin</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
@@ -34,6 +34,8 @@
         <button id="newInquiryBtn" class="secondary">+ Nová poptávka</button>
         <button id="saveInquiryBtn" class="primary">Uložit poptávku do DB</button>
         <button id="loadListBtn" class="secondary">Načíst uložené poptávky</button>
+        <button id="adminNavBtn" class="secondary hidden">Admin číselníky</button>
+        <button id="backToInquiryBtn" class="secondary hidden">Zpět do poptávky</button>
         <span id="saveStatus" class="status"></span>
       </div>
 
@@ -118,7 +120,41 @@
         <div id="insurerDoc" class="doc-view"></div><div id="clientDoc" class="doc-view hidden"></div><div id="zzjDoc" class="doc-view hidden"></div>
       </section>
 
-      <section id="adminPanel" class="panel hidden"><h2>Admin – číselníky</h2><p class="muted">Admin panel zatím zobrazuje výchozí katalogy. Další krok: editace číselníků v databázi.</p><pre id="adminDump"></pre></section>
+      <section id="adminPanel" class="panel admin-panel hidden">
+        <div class="admin-hero">
+          <div>
+            <p class="eyebrow">Administrace aplikace</p>
+            <h2>Admin číselníky</h2>
+            <p class="muted">Správa hodnot, které poradci používají ve formuláři. Změny se ukládají do databáze a po uložení se projeví v aplikaci.</p>
+          </div>
+          <div class="admin-status" id="adminSaveStatus">Připraveno k úpravám</div>
+        </div>
+
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-admin-tab="insurersAdmin">Pojišťovny</button>
+          <button class="admin-tab" data-admin-tab="advisersAdmin">Poradci</button>
+          <button class="admin-tab" data-admin-tab="requirementsAdmin">Typy doplňujících údajů</button>
+        </div>
+
+        <div id="insurersAdmin" class="admin-section">
+          <div class="section-head"><div><h3>Pojišťovny pro poptávku</h3><p class="muted">Tento číselník se používá ve výběru pojišťoven, kterým poradce odešle poptávku.</p></div><button id="addInsurerAdmin" class="secondary">+ Přidat pojišťovnu</button></div>
+          <div class="admin-table" id="insurersAdminTable"></div>
+        </div>
+
+        <div id="advisersAdmin" class="admin-section hidden">
+          <div class="section-head"><div><h3>Poradci / makléři</h3><p class="muted">Dočasně zde spravujeme přihlašovací údaje a role. Později doplníme bezpečné nastavení hesel.</p></div><button id="addAdviserAdmin" class="secondary">+ Přidat poradce</button></div>
+          <div class="admin-table" id="advisersAdminTable"></div>
+        </div>
+
+        <div id="requirementsAdmin" class="admin-section hidden">
+          <div class="section-head"><div><h3>Typy doplňujících informací</h3><p class="muted">Například výluky, zvláštní ujednání, škodní průběh nebo smluvní požadavky.</p></div><button id="addReqTypeAdmin" class="secondary">+ Přidat typ</button></div>
+          <div class="admin-table" id="reqTypesAdminTable"></div>
+        </div>
+
+        <div class="admin-actions">
+          <button id="saveAdminCatalogs" class="primary">Uložit admin číselníky do DB</button>
+        </div>
+      </section>
     </section>
   </main>
 
