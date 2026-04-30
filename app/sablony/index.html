@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ASTORIE Business Risk Hub</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="logo">A</div><div><div class="brand-title">ASTORIE</div><div class="brand-subtitle">Business Risk Hub</div></div></div>
+  <div class="version">MVP 0.2 · interaktivní rizika</div>
+</header>
+<main class="page">
+<section class="hero">
+  <div><div class="eyebrow">POPTÁVKOVÝ A SROVNÁVACÍ MODUL</div><h1>Chytrý průvodce podnikatelským pojištěním</h1><p>Poradce vybírá činnost klienta, potvrzuje rizika, upravuje limity a doplňuje poznámky pro klienta, poptávku i ZZJ.</p></div>
+  <aside class="next-card"><div>DALŠÍ KROK VÝVOJE</div><strong>Uložení poptávky + export klientského výstupu</strong></aside>
+</section>
+<section class="panel">
+  <div class="panel-head"><div><h2>1. Výběr činnosti klienta</h2><p>Začínáme číselníkem oborů. Následně se automaticky navrhnou typická rizika.</p></div>
+  <select id="activitySelect">{% for activity in activities %}<option value="{{ activity.id }}">{{ activity.name }}</option>{% endfor %}</select></div>
+  <div id="activityInfo" class="activity-info"></div>
+</section>
+<section class="panel">
+  <div class="panel-head"><div><h2>2. Automaticky navržená rizika</h2><p>Kliknutím na riziko otevřeš detail. Poradce může upravit limit, poznámku, doporučení i stav.</p></div><button id="addRiskBtn" class="btn secondary">+ Přidat vlastní riziko</button></div>
+  <div id="riskGrid" class="risk-grid"></div>
+</section>
+<section class="panel">
+  <div class="panel-head"><div><h2>3. Pracovní klientský výstup</h2><p>První náhled toho, co se bude později ukládat do poptávky, nabídky klientovi a ZZJ.</p></div><button id="copySummaryBtn" class="btn">Kopírovat text</button></div>
+  <textarea id="summaryBox" class="summary" readonly></textarea>
+</section>
+</main>
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header"><div><div id="modalPriority" class="pill">Riziko</div><h3 id="modalTitle">Detail rizika</h3></div><button id="closeModalBtn" class="icon-btn">×</button></div>
+    <div class="modal-body">
+      <label class="switch-row"><input id="riskActive" type="checkbox"><span>Riziko zahrnout do poptávky</span></label>
+      <label>Název rizika<input id="riskName" type="text"></label>
+      <label>Limit / sublimit<input id="riskLimit" type="text"></label>
+      <label>Otázka pro klienta<textarea id="riskQuestion" rows="2"></textarea></label>
+      <label>Vysvětlení pro poradce<textarea id="riskExplanation" rows="3"></textarea></label>
+      <label>Poznámka pro klienta<textarea id="riskClientNote" rows="3"></textarea></label>
+      <label>Doporučení / důvod<textarea id="riskRecommendation" rows="3"></textarea></label>
+    </div>
+    <div class="modal-actions"><button id="deleteRiskBtn" class="btn danger">Odebrat riziko</button><div class="spacer"></div><button id="cancelModalBtn" class="btn secondary">Zavřít</button><button id="saveRiskBtn" class="btn">Uložit změny</button></div>
+  </div>
+</div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
