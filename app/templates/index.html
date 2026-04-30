@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.14 · nabídky + VPP</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.15 · AI asistované zpracování</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
@@ -27,6 +27,7 @@
     <section id="appView" class="hidden">
       <nav class="app-nav">
         <button class="nav-btn active" data-view="inquiryView">Poptávka</button>
+        <button class="nav-btn" data-view="aiView">AI zpracování</button>
         <button class="nav-btn" data-view="offersView">Nabídky</button>
         <button class="nav-btn" data-view="comparisonView">Porovnání</button>
         <button class="nav-btn" data-view="guideView">Průvodce</button>
@@ -127,6 +128,49 @@
         <section class="panel document">
           <div class="tabs"><button class="tab active" data-tab="insurerDoc">Poptávka pro pojišťovny</button><button class="tab" data-tab="clientDoc">Klientské shrnutí</button><button class="tab" data-tab="zzjDoc">Podklad pro ZZJ</button></div>
           <div id="insurerDoc" class="doc-view"></div><div id="clientDoc" class="doc-view hidden"></div><div id="zzjDoc" class="doc-view hidden"></div>
+        </section>
+      </section>
+
+
+      <section id="aiView" class="app-section hidden">
+        <div class="hero compact">
+          <div>
+            <p class="eyebrow">AI asistované zpracování nabídek</p>
+            <h1>Pomocník pro vytěžení nabídky pojišťovny</h1>
+            <p>První fáze neodesílá data přímo z aplikace do AI. Poradce zkopíruje připravený prompt, přiloží nabídku a VPP/DPP v ChatGPT, výsledek ve strukturovaném JSON vloží zpět do aplikace.</p>
+          </div>
+          <div class="card small"><b>Kontrola člověkem</b><br>AI výstup je pracovní návrh. Poradce musí ověřit pojistné podmínky, výluky, sublimity a zdroje.</div>
+        </div>
+
+        <section class="panel">
+          <h2>1. Pro kterou pojišťovnu zpracováváš nabídku?</h2>
+          <div class="grid3">
+            <label>Pojišťovna<select id="aiInsurerSelect"></select></label>
+            <label>Název / číslo nabídky<input id="aiOfferLabel" placeholder="např. Nabídka č. 123/2026"></label>
+            <label>Dokumenty k AI<input id="aiDocsLabel" placeholder="např. nabídka PDF + VPP ODP 2025 + ZPP"></label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div><h2>2. Prompt pro ChatGPT</h2><p class="muted">Zkopíruj prompt, vlož ho do ChatGPT a přilož nabídku pojišťovny + pojistné podmínky. ChatGPT má vrátit pouze JSON podle schématu.</p></div>
+            <button id="copyAiPromptBtn" class="primary">Zkopírovat prompt</button>
+          </div>
+          <textarea id="aiPromptBox" class="large-textarea" readonly></textarea>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div><h2>3. Vložit strukturovaný výstup z ChatGPT</h2><p class="muted">Sem vlož JSON, který ChatGPT vrátí. Aplikace z něj předvyplní nabídku, krytí, limity, názvosloví pojišťovny, zdroje z VPP/DPP a poznámky.</p></div>
+            <button id="importAiJsonBtn" class="primary">Načíst AI výstup do nabídky</button>
+          </div>
+          <textarea id="aiJsonInput" class="large-textarea" placeholder='Sem vlož JSON výstup z ChatGPT...'></textarea>
+          <div id="aiImportStatus" class="status"></div>
+        </section>
+
+        <section class="panel document">
+          <h2>4. Kontrolní protokol AI zpracování</h2>
+          <div id="aiProtocol" class="doc-view"></div>
         </section>
       </section>
 

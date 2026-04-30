@@ -2,7 +2,7 @@ let CATALOG = null;
 let state = {
   id:null,
   adviser:{}, client:{}, questionnaire:{}, activity:null,
-  risks:[], selected_insurers:[], additional_requirements:[], offers:{},
+  risks:[], selected_insurers:[], additional_requirements:[], offers:{}, ai_imports:[],
   title:"", status:"rozpracováno"
 };
 let currentRiskIndex = null;
@@ -70,6 +70,11 @@ function bindUI(){
   $('loadListBtn').onclick = loadInquiries;
   $('newInquiryBtn').onclick = ()=>resetInquiry(true);
   $('refreshOffersBtn').onclick = renderOffers;
+  if($('copyAiPromptBtn')) $('copyAiPromptBtn').onclick = copyAIPrompt;
+  if($('importAiJsonBtn')) $('importAiJsonBtn').onclick = importAIJson;
+  if($('aiInsurerSelect')) $('aiInsurerSelect').onchange = renderAIPrompt;
+  if($('aiOfferLabel')) $('aiOfferLabel').addEventListener('input', renderAIPrompt);
+  if($('aiDocsLabel')) $('aiDocsLabel').addEventListener('input', renderAIPrompt);
   $('closeModal').onclick = ()=>$('riskModal').classList.add('hidden');
   $('saveRiskDetail').onclick = saveRiskModal;
   document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>showTab(btn.dataset.tab));
@@ -90,6 +95,7 @@ function showView(id){
   document.querySelectorAll('.app-section').forEach(x=>x.classList.add('hidden'));
   $(id).classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  if(id==='aiView') renderAIWorkflow();
   if(id==='offersView') renderOffers();
   if(id==='comparisonView') renderComparison();
   if(id==='guideView') renderGuide();
@@ -101,13 +107,14 @@ function showView(id){
 function renderCatalogs(){
   $('activitySelect').innerHTML = (CATALOG.activities||[]).map(a=>`<option value="${a.code}">${a.name}</option>`).join('');
   $('insurersList').innerHTML = (CATALOG.insurers||[]).filter(i=>i.active).map(i=>`<label class="check"><input type="checkbox" value="${i.id}"> <b>${i.short||''}</b> ${i.name||''}</label>`).join('');
+  if($('aiInsurerSelect')) $('aiInsurerSelect').innerHTML = (CATALOG.insurers||[]).filter(i=>i.active).map(i=>`<option value="${i.id}">${i.short||''} – ${i.name||''}</option>`).join('');
   $('insurersList').querySelectorAll('input').forEach(cb=>cb.onchange=()=>{ syncSelectedInsurers(); renderOffers(); updateAll(); });
 }
 
 function resetInquiry(confirmIt){
   if(confirmIt && !confirm('Opravdu založit novou poptávku? Neuložené změny se ztratí.')) return;
   const user = state.adviser;
-  state = { id:null, adviser:user, client:{}, questionnaire:{}, activity:null, risks:[], selected_insurers:[], additional_requirements:[], offers:{}, title:"", status:"rozpracováno" };
+  state = { id:null, adviser:user, client:{}, questionnaire:{}, activity:null, risks:[], selected_insurers:[], additional_requirements:[], offers:{}, ai_imports:[], title:"", status:"rozpracováno" };
   $('inquiryId').value = '';
   ['clientIco','clientName','clientLegal','clientAddress','clientDataBox','clientContact','clientEmail','clientPhone','clientWeb','insuranceStart','insurancePeriodCustom','turnover','employees','territoryCustom','exportCustom'].forEach(id=>$(id).value='');
   $('insurancePeriodSelect').value='1 rok'; $('territorySelect').value='Česká republika'; $('exportSelect').value='Ne';
@@ -384,6 +391,133 @@ async function saveAdminCatalogs(){
     $('adminSaveStatus').textContent=res.message || 'Uloženo.';
     renderCatalogs(); renderOffers(); updateAll();
   }catch(e){ $('adminSaveStatus').textContent='Chyba: '+e.message; }
+}
+
+function renderAIWorkflow(){
+  collectForm();
+  if($('aiInsurerSelect')){
+    const selected = selectedInsurers();
+    const source = selected.length ? selected : (CATALOG.insurers||[]).filter(i=>i.active);
+    const current = $('aiInsurerSelect').value;
+    $('aiInsurerSelect').innerHTML = source.map(i=>`<option value="${i.id}">${i.short||''} – ${i.name||''}</option>`).join('');
+    if(current && source.some(i=>i.id===current)) $('aiInsurerSelect').value=current;
+  }
+  renderAIPrompt();
+  renderAIProtocol();
+}
+function aiRiskSchema(){
+  return activeRisks().map(r=>{
+    const dict=getDictionary(r.id);
+    const aliases=(dict?.aliases||[]).join(', ');
+    return `- risk_id: ${r.id}; jednotný název ASTORIE: ${r.name}; požadovaný/orientační limit: ${r.limit||''}; možné názvy v nabídce: ${aliases||'nejsou předvyplněny'}`;
+  }).join('\n');
+}
+function buildAIPrompt(){
+  collectForm();
+  const insurerId = $('aiInsurerSelect')?.value || (state.selected_insurers||[])[0] || '';
+  const insurer = (CATALOG.insurers||[]).find(i=>i.id===insurerId) || {};
+  const offerLabel = $('aiOfferLabel')?.value || 'nabídka pojišťovny';
+  const docsLabel = $('aiDocsLabel')?.value || 'nabídka + VPP/DPP/ZPP/IPID přiložené v chatu';
+  const requirements = (state.additional_requirements||[]).map(r=>`- ${labelReqType(r.type)}: ${r.text}`).join('\n') || '- bez doplňujících požadavků';
+  return `Jsi seniorní pojistný analytik a specialista na podnikatelská pojištění. Zpracuj přiloženou nabídku pojišťovny a pojistné podmínky do jednotné struktury ASTORIE.
+
+KONTEXT POPTÁVKY:
+Klient: ${state.client?.name||''}, IČO: ${state.client?.ico||''}
+Činnost: ${state.activity?.name||''}
+Obrat / zaměstnanci: ${state.questionnaire?.turnover||''} / ${state.questionnaire?.employees||''}
+Územní rozsah: ${state.questionnaire?.territory||''}; export: ${state.questionnaire?.export_info||''}
+Pojistná doba: ${state.questionnaire?.insurance_period||''}; počátek: ${state.questionnaire?.insurance_start||''}
+Pojišťovna: ${insurer.short||''} – ${insurer.name||''}
+Nabídka: ${offerLabel}
+Dokumenty: ${docsLabel}
+
+DOPLŇUJÍCÍ POŽADAVKY KLIENTA:
+${requirements}
+
+JEDNOTNÁ RIZIKA ASTORIE, do kterých musíš nabídku namapovat:
+${aiRiskSchema()}
+
+ÚKOL:
+1. Najdi v nabídce a pojistných podmínkách odpovídající krytí pro každé jednotné riziko ASTORIE.
+2. Sjednoť rozdílné názvosloví pojišťovny na risk_id ASTORIE.
+3. U každé položky uveď stav: "splněno", "částečně", "nesplněno", "výluka" nebo "nevyhodnoceno".
+4. Uveď limit, sublimit, spoluúčast, původní název v nabídce pojišťovny a přesný zdroj: dokument, článek, odstavec/strana.
+5. Pokud zdroj nelze ověřit, napiš "nutno ověřit" a nevymýšlej si článek.
+6. Upozorni na výluky, omezení, rozpory, chybějící položky a dotazy na pojišťovnu.
+7. Vrať POUZE validní JSON bez komentářů a bez markdownu.
+
+POŽADOVANÝ JSON FORMÁT:
+{
+  "insurer_id": "${insurerId}",
+  "insurer_name": "${insurer.name||''}",
+  "offer_label": "${offerLabel}",
+  "premium": "",
+  "deductible": "",
+  "valid_until": "",
+  "status": "doručeno",
+  "manager_summary": "stručné manažerské shrnutí silných a slabých míst nabídky",
+  "questions_to_insurer": ["dotaz 1", "dotaz 2"],
+  "exclusions_or_limits": ["výluka/omezení 1"],
+  "coverages": [
+    {
+      "risk_id": "ID rizika z výše uvedeného seznamu",
+      "state": "splněno|částečně|nesplněno|výluka|nevyhodnoceno",
+      "limit": "limit/sublimit uvedený v nabídce",
+      "deductible": "spoluúčast, pokud se liší nebo je relevantní",
+      "original_name": "původní název v nabídce pojišťovny",
+      "source": "název dokumentu, článek, odstavec, strana",
+      "note": "praktický dopad pro klienta a poradce"
+    }
+  ]
+}`;
+}
+function renderAIPrompt(){
+  if(!$('aiPromptBox')) return;
+  $('aiPromptBox').value = buildAIPrompt();
+}
+async function copyAIPrompt(){
+  renderAIPrompt();
+  try{ await navigator.clipboard.writeText($('aiPromptBox').value); $('aiImportStatus').textContent='Prompt zkopírován.'; }
+  catch(e){ $('aiPromptBox').select(); document.execCommand('copy'); $('aiImportStatus').textContent='Prompt zkopírován.'; }
+}
+function importAIJson(){
+  const raw = $('aiJsonInput').value.trim();
+  if(!raw){ $('aiImportStatus').textContent='Vlož JSON výstup z ChatGPT.'; return; }
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){ $('aiImportStatus').textContent='JSON není validní: '+e.message; return; }
+  const insurerId = data.insurer_id || $('aiInsurerSelect')?.value;
+  if(!insurerId){ $('aiImportStatus').textContent='Chybí insurer_id nebo výběr pojišťovny.'; return; }
+  if(!state.offers[insurerId]) state.offers[insurerId]={premium:'',deductible:'',valid_until:'',status:'doručeno',note:'',coverages:{}};
+  const offer = state.offers[insurerId];
+  offer.status = data.status || 'doručeno';
+  offer.premium = data.premium || offer.premium || '';
+  offer.deductible = data.deductible || offer.deductible || '';
+  offer.valid_until = data.valid_until || offer.valid_until || '';
+  offer.note = data.manager_summary || data.note || offer.note || '';
+  offer.ai_questions = data.questions_to_insurer || [];
+  offer.ai_exclusions = data.exclusions_or_limits || [];
+  offer.ai_offer_label = data.offer_label || '';
+  (data.coverages||[]).forEach(c=>{
+    if(!c.risk_id) return;
+    offer.coverages[c.risk_id] = {
+      state:c.state || 'nevyhodnoceno',
+      limit:c.limit || '',
+      original:c.original_name || c.original || '',
+      source:c.source || '',
+      note:[c.note, c.deductible ? ('Spoluúčast: '+c.deductible) : ''].filter(Boolean).join(' | ')
+    };
+  });
+  state.ai_imports = state.ai_imports || [];
+  state.ai_imports.push({insurer_id:insurerId, imported_at:new Date().toISOString(), offer_label:data.offer_label||'', warnings:[...(data.questions_to_insurer||[]), ...(data.exclusions_or_limits||[])]});
+  $('aiImportStatus').textContent='AI výstup načten do nabídky. Zkontroluj modul Nabídky a Porovnání.';
+  renderOffers(); renderComparison(); renderAIProtocol(); updateAll();
+}
+function renderAIProtocol(){
+  if(!$('aiProtocol')) return;
+  const items = state.ai_imports || [];
+  if(!items.length){ $('aiProtocol').innerHTML='<p class="muted">Zatím nebyl načten žádný AI výstup. Po vložení JSON zde vznikne kontrolní protokol.</p>'; return; }
+  $('aiProtocol').innerHTML = `<table><thead><tr><th>Pojišťovna</th><th>Čas importu</th><th>Nabídka</th><th>Body k ověření</th></tr></thead><tbody>${items.map(i=>`<tr><td>${insurerName(i.insurer_id)}</td><td>${i.imported_at||''}</td><td>${i.offer_label||''}</td><td>${(i.warnings||[]).join('<br>')||'—'}</td></tr>`).join('')}</tbody></table>`;
 }
 
 init();
