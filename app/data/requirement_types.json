@@ -1,0 +1,8 @@
+[
+  {"id":"vyluky","name":"Požadavky na výluky","defaultOutput":["insurer","client","zzj"]},
+  {"id":"ujednani","name":"Zvláštní ujednání","defaultOutput":["insurer","client","zzj"]},
+  {"id":"smluvni","name":"Smluvní požadavky odběratelů","defaultOutput":["insurer","client","zzj"]},
+  {"id":"skody","name":"Škodní průběh","defaultOutput":["insurer","zzj"]},
+  {"id":"podklady","name":"Podklady pro pojišťovny","defaultOutput":["insurer"]},
+  {"id":"vlastni","name":"Vlastní informace","defaultOutput":["insurer","client","zzj"]}
+]

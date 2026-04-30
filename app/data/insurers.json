@@ -1,9 +1,7 @@
 [
-  {"id":"koop","name":"Kooperativa pojišťovna, a.s., Vienna Insurance Group","short":"KOOP","email":"","active":true,"note":"Podnikatelská odpovědnost, majetek, flotily."},
-  {"id":"gcp","name":"Generali Česká pojišťovna a.s.","short":"GČP","email":"","active":true,"note":"Podnikatelé, majetek, odpovědnost, flotily."},
-  {"id":"cpp","name":"Česká podnikatelská pojišťovna, a.s., Vienna Insurance Group","short":"ČPP","email":"","active":true,"note":"Podnikatelská odpovědnost, flotily."},
-  {"id":"allianz","name":"Allianz pojišťovna, a.s.","short":"Allianz","email":"","active":true,"note":"Majetek, odpovědnost, podnikatelé."},
-  {"id":"uniqa","name":"UNIQA pojišťovna, a.s.","short":"UNIQA","email":"","active":true,"note":"Majetek a odpovědnost podnikatelů."},
-  {"id":"csob","name":"ČSOB Pojišťovna, a.s., člen holdingu ČSOB","short":"ČSOB","email":"","active":true,"note":"Podnikatelé, majetek, odpovědnost."},
-  {"id":"direct","name":"Direct pojišťovna, a.s.","short":"Direct","email":"","active":true,"note":"Vybrané podnikatelské produkty."}
+  {"id":"koop","name":"Kooperativa pojišťovna, a.s.","short":"KOOP","active":true},
+  {"id":"gcp","name":"Generali Česká pojišťovna a.s.","short":"GČP","active":true},
+  {"id":"cpp","name":"Česká podnikatelská pojišťovna, a.s.","short":"ČPP","active":true},
+  {"id":"allianz","name":"Allianz pojišťovna, a.s.","short":"Allianz","active":true},
+  {"id":"uniqa","name":"UNIQA pojišťovna, a.s.","short":"UNIQA","active":true}
 ]

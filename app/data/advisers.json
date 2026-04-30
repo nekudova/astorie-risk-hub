@@ -1,0 +1,4 @@
+[
+  {"email":"admin@astorie.local","password":"Astorie2026!","name":"Administrátor ASTORIE","role":"admin","company":"ASTORIE a.s.","registration":"samostatný zprostředkovatel"},
+  {"email":"poradce@astorie.local","password":"Poradce2026!","name":"Demo poradce","role":"advisor","company":"ASTORIE a.s.","registration":"samostatný zprostředkovatel"}
+]
