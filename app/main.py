@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 BASE_DIR = os.path.dirname(__file__)
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-app = FastAPI(title="ASTORIE Business Risk Hub", version="0.13")
+app = FastAPI(title="ASTORIE Business Risk Hub", version="0.14")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -127,6 +127,8 @@ def init_db() -> bool:
                 ('insurers', 'insurers.json'),
                 ('advisers', 'advisers.json'),
                 ('requirementTypes', 'requirement_types.json'),
+                ('coverageDictionary', 'coverage_dictionary.json'),
+                ('policyReferences', 'policy_references.json'),
             ]:
                 cur.execute("SELECT 1 FROM catalog_settings WHERE key=%s", (key,))
                 if not cur.fetchone():
@@ -164,7 +166,7 @@ def health():
         ok = init_db()
     except Exception:
         ok = False
-    return {"ok": True, "database_connected": ok, "version": "0.13"}
+    return {"ok": True, "database_connected": ok, "version": "0.14"}
 
 
 def get_catalogs() -> Dict[str, Any]:
@@ -174,6 +176,8 @@ def get_catalogs() -> Dict[str, Any]:
         "insurers": load_json("insurers.json"),
         "advisers": load_json("advisers.json"),
         "requirementTypes": load_json("requirement_types.json"),
+        "coverageDictionary": load_json("coverage_dictionary.json"),
+        "policyReferences": load_json("policy_references.json"),
     }
     conn = _connect()
     if not conn:

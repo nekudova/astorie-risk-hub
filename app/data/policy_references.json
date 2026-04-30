@@ -1,0 +1,23 @@
+[
+  {
+    "insurer_id": "koop",
+    "risk_id": "operational_liability",
+    "document": "VPP/DPP odpovědnost – doplnit aktuální verzi",
+    "article": "doplnit článek",
+    "note": "Zatím pracovní odkaz; admin doplní přesné VPP/DPP a článek."
+  },
+  {
+    "insurer_id": "gcp",
+    "risk_id": "financial_loss",
+    "document": "VPP/DPP odpovědnost – doplnit aktuální verzi",
+    "article": "doplnit článek",
+    "note": "Ověřit, zda jde o čistou finanční škodu, následnou finanční škodu nebo jiné omezení."
+  },
+  {
+    "insurer_id": "cpp",
+    "risk_id": "completed_operations",
+    "document": "VPP/DPP odpovědnost – doplnit aktuální verzi",
+    "article": "doplnit článek",
+    "note": "Ověřit časovou působnost a vazbu na dokončené práce."
+  }
+]

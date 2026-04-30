@@ -225,13 +225,23 @@ function renderOffers(){
   $('offersList').innerHTML = insurers.map(i=>offerCardHtml(i)).join('');
   $('offersList').querySelectorAll('input,select,textarea').forEach(el=>el.oninput=()=>{ collectOffers(true); renderComparison(); });
 }
+function getPolicyReference(insurerId, riskId){
+  return (CATALOG.policyReferences||[]).find(x=>x.insurer_id===insurerId && x.risk_id===riskId) || null;
+}
+function getDictionary(riskId){
+  return (CATALOG.coverageDictionary||[]).find(x=>x.risk_id===riskId) || null;
+}
 function offerCardHtml(insurer){
   const o = state.offers[insurer.id] || {};
   const coverageRows = activeRisks().map(r=>{
-    const c=(o.coverages||{})[r.id]||{state:'nevyhodnoceno',limit:r.limit||'',note:''};
-    return `<div class="coverage-row" data-risk-id="${r.id}"><div><b>${r.name}</b><small>${r.limit||''}</small></div><select class="cov-state"><option ${c.state==='nevyhodnoceno'?'selected':''}>nevyhodnoceno</option><option ${c.state==='splněno'?'selected':''}>splněno</option><option ${c.state==='částečně'?'selected':''}>částečně</option><option ${c.state==='nesplněno'?'selected':''}>nesplněno</option><option ${c.state==='výluka'?'selected':''}>výluka</option></select><input class="cov-limit" value="${c.limit||''}" placeholder="limit v nabídce"><input class="cov-note" value="${c.note||''}" placeholder="poznámka / rozdíl"></div>`;
+    const c=(o.coverages||{})[r.id]||{state:'nevyhodnoceno',limit:r.limit||'',note:'',original:'',source:''};
+    const dict=getDictionary(r.id);
+    const ref=getPolicyReference(insurer.id, r.id);
+    const aliases=dict?.aliases?.length ? `<small>Možné názvy: ${dict.aliases.slice(0,4).join(', ')}</small>` : '';
+    const sourceHint=ref ? `${ref.document}; ${ref.article}` : 'doplnit VPP/DPP, článek/odstavec';
+    return `<div class="coverage-row rich" data-risk-id="${r.id}"><div><b>${r.name}</b><small>Požadavek: ${r.limit||''}</small>${aliases}</div><select class="cov-state"><option ${c.state==='nevyhodnoceno'?'selected':''}>nevyhodnoceno</option><option ${c.state==='splněno'?'selected':''}>splněno</option><option ${c.state==='částečně'?'selected':''}>částečně</option><option ${c.state==='nesplněno'?'selected':''}>nesplněno</option><option ${c.state==='výluka'?'selected':''}>výluka</option></select><input class="cov-limit" value="${c.limit||''}" placeholder="limit v nabídce"><input class="cov-original" value="${c.original||''}" placeholder="název v nabídce pojišťovny"><input class="cov-source" value="${c.source||sourceHint}" placeholder="VPP/DPP, článek"><input class="cov-note" value="${c.note||''}" placeholder="poznámka / rozdíl / výluka"></div>`;
   }).join('');
-  return `<div class="offer-card" data-insurer-id="${insurer.id}"><div class="section-head"><div><h3>${insurer.short||''} – ${insurer.name||''}</h3><p class="muted">Zadej údaje z nabídky. Krytí mapujeme na jednotná rizika ASTORIE.</p></div><span class="pill">nabídka</span></div><div class="grid4"><label>Stav nabídky<select class="off-status"><option ${o.status==='čekáme na nabídku'?'selected':''}>čekáme na nabídku</option><option ${o.status==='doručeno'?'selected':''}>doručeno</option><option ${o.status==='doplnit dotaz'?'selected':''}>doplnit dotaz</option><option ${o.status==='nepoptáno/nepodáno'?'selected':''}>nepoptáno/nepodáno</option></select></label><label>Roční pojistné<input class="off-premium" value="${o.premium||''}" placeholder="např. 48 000 Kč"></label><label>Spoluúčast<input class="off-deductible" value="${o.deductible||''}" placeholder="např. 10 000 Kč"></label><label>Platnost nabídky<input class="off-valid" value="${o.valid_until||''}" placeholder="např. 30. 6. 2026"></label></div><label>Poznámka k nabídce<textarea class="off-note" placeholder="silné/slabé stránky, dotazy na pojišťovnu, výluky...">${o.note||''}</textarea></label><h4>Krytí podle jednotných rizik</h4><div class="coverage-table"><div class="coverage-head"><b>Riziko</b><b>Stav</b><b>Limit v nabídce</b><b>Poznámka</b></div>${coverageRows}</div></div>`;
+  return `<div class="offer-card" data-insurer-id="${insurer.id}"><div class="section-head"><div><h3>${insurer.short||''} – ${insurer.name||''}</h3><p class="muted">Nabídku nepřepisujeme volným textem. Každou položku párujeme na jednotné riziko ASTORIE, zapisujeme původní název z nabídky a zdroj ve VPP/DPP.</p></div><span class="pill">nabídka</span></div><div class="grid4"><label>Stav nabídky<select class="off-status"><option ${o.status==='čekáme na nabídku'?'selected':''}>čekáme na nabídku</option><option ${o.status==='doručeno'?'selected':''}>doručeno</option><option ${o.status==='doplnit dotaz'?'selected':''}>doplnit dotaz</option><option ${o.status==='nepoptáno/nepodáno'?'selected':''}>nepoptáno/nepodáno</option></select></label><label>Roční pojistné<input class="off-premium" value="${o.premium||''}" placeholder="např. 48 000 Kč"></label><label>Spoluúčast<input class="off-deductible" value="${o.deductible||''}" placeholder="např. 10 000 Kč"></label><label>Platnost nabídky<input class="off-valid" value="${o.valid_until||''}" placeholder="např. 30. 6. 2026"></label></div><label>Manažerské shrnutí nabídky<textarea class="off-note" placeholder="silné/slabé stránky, dotazy na pojišťovnu, podstatné výluky...">${o.note||''}</textarea></label><h4>Krytí podle jednotných rizik ASTORIE</h4><div class="coverage-table rich"><div class="coverage-head rich"><b>Riziko</b><b>Stav</b><b>Limit</b><b>Název v nabídce</b><b>Zdroj VPP/DPP</b><b>Poznámka</b></div>${coverageRows}</div></div>`;
 }
 function collectOffers(updateState){
   document.querySelectorAll('.offer-card').forEach(card=>{
@@ -244,24 +254,47 @@ function collectOffers(updateState){
     state.offers[id].note=card.querySelector('.off-note')?.value || '';
     state.offers[id].coverages={};
     card.querySelectorAll('.coverage-row').forEach(row=>{
-      state.offers[id].coverages[row.dataset.riskId]={state:row.querySelector('.cov-state').value,limit:row.querySelector('.cov-limit').value,note:row.querySelector('.cov-note').value};
+      state.offers[id].coverages[row.dataset.riskId]={state:row.querySelector('.cov-state').value,limit:row.querySelector('.cov-limit').value,original:row.querySelector('.cov-original')?.value||'',source:row.querySelector('.cov-source')?.value||'',note:row.querySelector('.cov-note').value};
     });
   });
+}
+function coverageScore(c){
+  const st=(c?.state||'').toLowerCase();
+  if(st==='splněno') return 2;
+  if(st==='částečně') return 1;
+  if(st==='nesplněno' || st==='výluka') return -2;
+  return 0;
+}
+function offerQuality(insurer){
+  const offer=state.offers[insurer.id]||{};
+  let score=0, missing=[];
+  activeRisks().forEach(r=>{
+    const c=offer.coverages?.[r.id]||{};
+    score += coverageScore(c);
+    if(['nesplněno','výluka','nevyhodnoceno',''].includes((c.state||'').toLowerCase())) missing.push(r.name);
+  });
+  return {score, missing};
+}
+function recommendedInsurer(insurers){
+  return insurers.map(i=>({insurer:i,...offerQuality(i)})).sort((a,b)=>b.score-a.score)[0] || null;
 }
 function renderComparison(){
   collectForm();
   const insurers = selectedInsurers();
   if(!insurers.length){ $('comparisonDoc').innerHTML='<h2>Porovnání nabídek</h2><p class="muted">Nejdříve vyber pojišťovny v poptávce.</p>'; return; }
+  const rec = recommendedInsurer(insurers);
   const head = `<tr><th>Kritérium / riziko</th>${insurers.map(i=>`<th>${i.short||i.name}</th>`).join('')}</tr>`;
   const summaryRows = [
     ['Stav nabídky', i=>state.offers[i.id]?.status||'čekáme na nabídku'],
     ['Roční pojistné', i=>state.offers[i.id]?.premium||'—'],
     ['Spoluúčast', i=>state.offers[i.id]?.deductible||'—'],
     ['Platnost nabídky', i=>state.offers[i.id]?.valid_until||'—'],
+    ['Skóre krytí', i=>offerQuality(i).score],
     ['Poznámka', i=>state.offers[i.id]?.note||'—']
   ].map(([label,fn])=>`<tr><td><b>${label}</b></td>${insurers.map(i=>`<td>${fn(i)}</td>`).join('')}</tr>`).join('');
-  const riskRows = activeRisks().map(r=>`<tr><td><b>${r.name}</b><br><span class="muted">Požadavek: ${r.limit||''}</span></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; return `<td><b class="cov ${slug(c.state)}">${c.state||'nevyhodnoceno'}</b><br>${c.limit||''}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`).join('');
-  $('comparisonDoc').innerHTML = `<h2>Porovnání nabídek</h2><p class="muted">Srovnání je pracovní podklad pro doporučení klientovi. Nehodnotí pouze cenu, ale i splnění požadovaných rizik.</p><h3>Základní parametry</h3><table><tbody>${head}${summaryRows}</tbody></table><h3>Krytí rizik</h3><table><tbody>${head}${riskRows}</tbody></table>`;
+  const riskRows = activeRisks().map(r=>`<tr><td><b>${r.name}</b><br><span class="muted">Požadavek ASTORIE: ${r.limit||''}</span></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; const src=c.source?`<br><small>Zdroj: ${c.source}</small>`:''; const orig=c.original?`<br><small>Název v nabídce: ${c.original}</small>`:''; return `<td><b class="cov ${slug(c.state)}">${c.state||'nevyhodnoceno'}</b><br>${c.limit||''}${orig}${src}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`).join('');
+  const recommendation = rec ? `<div class="recommend-box"><h3>Pracovní doporučení systému</h3><p><b>Nejlépe vychází: ${rec.insurer.short||rec.insurer.name}</b> podle vyhodnocení splnění požadovaných rizik. Toto není automatické rozhodnutí – poradce musí ověřit pojistné podmínky, výluky, sublimity a potřeby klienta.</p>${rec.missing.length?`<p><b>Body k ověření:</b> ${rec.missing.join(', ')}</p>`:'<p>U doporučené nabídky nejsou zatím evidována nesplněná hlavní rizika.</p>'}</div>` : '';
+  $('comparisonDoc').innerHTML = `<h2>Porovnání nabídek</h2><p class="muted">Srovnání pracuje s jednotným názvoslovím ASTORIE. U každé položky zůstává původní název z nabídky pojišťovny a zdroj ve VPP/DPP, aby poradce mohl vše ověřit.</p>${recommendation}<h3>Základní parametry</h3><table><tbody>${head}${summaryRows}</tbody></table><h3>Krytí rizik + zdroje</h3><table><tbody>${head}${riskRows}</tbody></table>`;
 }
 function slug(v){ return (v||'').replaceAll('ě','e').replaceAll('š','s').replaceAll('č','c').replaceAll('ř','r').replaceAll('ž','z').replaceAll('ý','y').replaceAll('á','a').replaceAll('í','i').replaceAll('é','e').replaceAll('ů','u').replaceAll('ú','u').replace(/\s+/g,'-'); }
 

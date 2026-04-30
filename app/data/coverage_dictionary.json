@@ -1,0 +1,27 @@
+[
+  {
+    "risk_id": "operational_liability",
+    "standard_name": "Provozní odpovědnost",
+    "aliases": ["obecná odpovědnost", "odpovědnost z provozní činnosti", "odpovědnost podnikatele", "provozní odpovědnost"]
+  },
+  {
+    "risk_id": "completed_operations",
+    "standard_name": "Vadná práce po předání",
+    "aliases": ["vadně vykonaná práce", "vada práce po předání", "completed operations", "odpovědnost za vadnou práci", "škoda po předání díla"]
+  },
+  {
+    "risk_id": "entrusted_property",
+    "standard_name": "Věci převzaté",
+    "aliases": ["věci převzaté", "cizí věci převzaté", "svěřené věci", "věci převzaté k provedení činnosti"]
+  },
+  {
+    "risk_id": "used_property",
+    "standard_name": "Věci užívané",
+    "aliases": ["věci užívané", "cizí věci užívané", "pronajaté věci", "věci v užívání"]
+  },
+  {
+    "risk_id": "financial_loss",
+    "standard_name": "Čistá finanční škoda / finanční škody",
+    "aliases": ["čistá finanční škoda", "finanční újma", "škoda na jmění", "pure financial loss", "majetková újma bez škody na věci"]
+  }
+]
