@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 BASE_DIR = os.path.dirname(__file__)
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-app = FastAPI(title="ASTORIE Business Risk Hub", version="0.15")
+app = FastAPI(title="ASTORIE Business Risk Hub", version="0.17")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -129,6 +129,7 @@ def init_db() -> bool:
                 ('requirementTypes', 'requirement_types.json'),
                 ('coverageDictionary', 'coverage_dictionary.json'),
                 ('policyReferences', 'policy_references.json'),
+                ('riskModel', 'risk_model.json'),
             ]:
                 cur.execute("SELECT 1 FROM catalog_settings WHERE key=%s", (key,))
                 if not cur.fetchone():
@@ -166,7 +167,7 @@ def health():
         ok = init_db()
     except Exception:
         ok = False
-    return {"ok": True, "database_connected": ok, "version": "0.15"}
+    return {"ok": True, "database_connected": ok, "version": "0.17"}
 
 
 def get_catalogs() -> Dict[str, Any]:
@@ -178,6 +179,7 @@ def get_catalogs() -> Dict[str, Any]:
         "requirementTypes": load_json("requirement_types.json"),
         "coverageDictionary": load_json("coverage_dictionary.json"),
         "policyReferences": load_json("policy_references.json"),
+        "riskModel": load_json("risk_model.json"),
     }
     conn = _connect()
     if not conn:
@@ -212,7 +214,7 @@ async def save_admin_catalogs(request: Request):
     conn = _connect()
     if not conn:
         raise HTTPException(status_code=503, detail="Databáze není připojena.")
-    allowed = {"insurers", "advisers", "requirementTypes"}
+    allowed = {"insurers", "advisers", "requirementTypes", "riskModel", "activities", "risks", "coverageDictionary", "policyReferences"}
     try:
         with conn, conn.cursor() as cur:
             for key in allowed:

@@ -1,3 +1,3 @@
-# Centrum obchodních rizik ASTORIE
+# ASTORIE Business Risk Hub v0.16
 
-MVP 0.15 – AI asistované zpracování nabídek, prompt pro ChatGPT, import strukturovaného JSON, mapování na jednotná rizika ASTORIE a zdroje VPP/DPP.
+Rizikový model BO, strategie Bezpečnost a profesionálnější porovnání nabídek.

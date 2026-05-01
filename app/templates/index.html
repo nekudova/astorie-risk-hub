@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.15 · AI asistované zpracování</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.17 · Admin databáze BO</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
@@ -190,6 +190,14 @@
           <div><p class="eyebrow">Srovnávací modul</p><h1>Porovnání nabídek</h1><p>Srovnáváme cenu, spoluúčast a krytí rizik. Cílem je podklad pro doporučení, ne jen nejlevnější nabídka.</p></div>
           <div class="card small"><b>Další krok</b><br>automatické bodování kvality nabídky a doporučení.</div>
         </div>
+        <section class="panel">
+          <div class="section-head"><div><h2>Strategie vyhodnocení</h2><p class="muted">Výchozí režim je Bezpečnost: prioritu má kvalita krytí, kritická rizika, výluky a dostatečné limity. Cena je podpůrné kritérium.</p></div><button id="recalcComparisonBtn" class="secondary">Přepočítat porovnání</button></div>
+          <div class="grid3">
+            <label>Strategie<select id="comparisonStrategy"><option value="bezpecnost" selected>Bezpečnost – krytí 70 %, cena 30 %</option><option value="vyvazeny">Vyvážený – krytí 50 %, cena 50 %</option><option value="cena">Cena – cena 70 %, krytí 30 %</option></select></label>
+            <label>Minimální standard<select id="comparisonStrictness"><option value="standard" selected>Standardní makléřská kontrola</option><option value="strict">Přísná kontrola kritických rizik</option></select></label>
+            <label>Výstup pro poradce<input value="pracovní doporučení + body k ověření" readonly></label>
+          </div>
+        </section>
         <section class="panel document">
           <div id="comparisonDoc" class="doc-view"></div>
         </section>
@@ -244,7 +252,13 @@
           <div class="admin-tabs">
             <button class="admin-tab active" data-admin-tab="insurersAdmin">Pojišťovny</button>
             <button class="admin-tab" data-admin-tab="advisersAdmin">Poradci</button>
+            <button class="admin-tab" data-admin-tab="activitiesAdmin">Typy klientů / činnosti</button>
+            <button class="admin-tab" data-admin-tab="risksAdmin">Rizika</button>
             <button class="admin-tab" data-admin-tab="requirementsAdmin">Typy doplňujících údajů</button>
+            <button class="admin-tab" data-admin-tab="dictionaryAdmin">Slovník názvosloví</button>
+            <button class="admin-tab" data-admin-tab="policyRefsAdmin">VPP/DPP zdroje</button>
+            <button class="admin-tab" data-admin-tab="riskModelAdmin">Rizikový model</button>
+            <button class="admin-tab" data-admin-tab="importAdmin">Import / export</button>
           </div>
           <div id="insurersAdmin" class="admin-section">
             <div class="section-head"><div><h3>Pojišťovny pro poptávku</h3><p class="muted">Tento číselník se používá ve výběru pojišťoven a v modulu Nabídky.</p></div><button id="addInsurerAdmin" class="secondary">+ Přidat pojišťovnu</button></div>
@@ -254,9 +268,41 @@
             <div class="section-head"><div><h3>Poradci / makléři</h3><p class="muted">Dočasně zde spravujeme přihlašovací údaje a role. Později doplníme bezpečné nastavení hesel.</p></div><button id="addAdviserAdmin" class="secondary">+ Přidat poradce</button></div>
             <div class="admin-table" id="advisersAdminTable"></div>
           </div>
+          <div id="activitiesAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h2>Typy klientů / činnosti</h2><p class="muted">Sem BO doplňuje obory podnikání, které se následně zobrazují poradci ve vstupním dotazníku.</p></div><button id="addActivityAdmin" class="secondary">+ Přidat činnost</button></div>
+            <div class="admin-table activities-table" id="activitiesAdminTable"></div>
+          </div>
+          <div id="risksAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h2>Rizika podle činnosti</h2><p class="muted">Tady se buduje hlavní know-how. Každé riziko patří k činnosti, má otázku pro klienta, vysvětlení, limit a důvod doporučení.</p></div><button id="addRiskAdmin" class="secondary">+ Přidat riziko</button></div>
+            <div class="admin-table risks-table" id="risksAdminTable"></div>
+          </div>
           <div id="requirementsAdmin" class="admin-section hidden">
-            <div class="section-head"><div><h3>Typy doplňujících informací</h3><p class="muted">Například výluky, zvláštní ujednání, škodní průběh nebo smluvní požadavky.</p></div><button id="addReqTypeAdmin" class="secondary">+ Přidat typ</button></div>
+            <div class="section-head"><h2>Typy doplňujících údajů</h2><button id="addReqTypeAdmin" class="secondary">+ Přidat typ</button></div>
             <div class="admin-table" id="reqTypesAdminTable"></div>
+          </div>
+          <div id="dictionaryAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h2>Slovník názvosloví pojišťoven</h2><p class="muted">Mapuje různé názvy pojišťoven na jednotné riziko ASTORIE. Používá se v AI promptu i porovnání.</p></div><button id="addDictionaryAdmin" class="secondary">+ Přidat mapování</button></div>
+            <div class="admin-table dictionary-table" id="dictionaryAdminTable"></div>
+          </div>
+          <div id="policyRefsAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h2>VPP/DPP zdroje a články</h2><p class="muted">Pracovní databáze zdrojů. Postupně sem doplníme dokumenty, články, odstavce a odkazy pro kontrolu krytí.</p></div><button id="addPolicyRefAdmin" class="secondary">+ Přidat zdroj</button></div>
+            <div class="admin-table policyrefs-table" id="policyRefsAdminTable"></div>
+          </div>
+          <div id="riskModelAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h2>Rizikový model ASTORIE</h2><p class="muted">BO zde určuje, co je pro daný typ klienta kritické, jakou má riziko váhu a jaké doporučení se má propsat do porovnání a AI promptu.</p></div><button id="addRiskModelAdmin" class="secondary">+ Přidat pravidlo</button></div>
+            <div class="admin-note">Doporučení: kritická rizika a vysoké váhy používejte pouze tam, kde je krytí pro danou činnost skutečně zásadní. Hodnoty se použijí v porovnání nabídek.</div>
+            <div class="admin-table riskmodel-table" id="riskModelAdminTable"></div>
+          </div>
+          <div id="importAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h2>Import / export číselníků</h2><p class="muted">Pro rychlé naplnění databáze. Excel si ulož jako CSV nebo z něj zkopíruj tabulku včetně hlaviček. Import se před uložením promítne do adminu, trvale se uloží až tlačítkem „Uložit admin číselníky do DB“.</p></div></div>
+            <div class="grid2">
+              <label>Co importuji<select id="importCatalogType"><option value="activities">Typy klientů / činnosti</option><option value="risks">Rizika podle činnosti</option><option value="coverageDictionary">Slovník názvosloví</option><option value="policyReferences">VPP/DPP zdroje</option><option value="riskModel">Rizikový model</option><option value="insurers">Pojišťovny</option><option value="advisers">Poradci</option></select></label>
+              <label>Formát<select id="importFormat"><option value="csv">CSV / zkopírovaná tabulka z Excelu</option><option value="json">JSON</option></select></label>
+            </div>
+            <textarea id="importDataBox" class="large-textarea" placeholder="Sem vlož data z Excelu/CSV včetně hlavičky, nebo JSON..."></textarea>
+            <div class="admin-actions"><button id="runImportAdmin" class="primary">Načíst import do adminu</button><button id="exportCatalogAdmin" class="secondary">Zkopírovat aktuální číselník jako JSON</button></div>
+            <div id="importStatus" class="status"></div>
+            <div class="admin-note"><b>Doporučené hlavičky pro rizika:</b> activity_code, id, name, priority, description, limit, question, reason, default_on<br><b>Doporučené hlavičky pro činnosti:</b> code, name, description, risk_level, limit_hint</div>
           </div>
           <div class="admin-actions"><button id="saveAdminCatalogs" class="primary">Uložit admin číselníky do DB</button></div>
         </section>

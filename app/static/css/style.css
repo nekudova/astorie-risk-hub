@@ -14,3 +14,15 @@
 .ai-note{border-left:5px solid var(--orange);background:#fff7f3;border-radius:16px;padding:14px 18px;margin:12px 0;}
 
 .score-ok{background:#d7f5e1;color:#146c2e}.score-warn{background:#fff3cd;color:#856404}.score-bad{background:#fde2e1;color:#9a1d16}.admin-row.riskmodel{grid-template-columns:110px 120px 1.2fr 120px 120px 90px 160px 1.5fr 90px}.admin-row.riskmodel textarea{min-height:44px;margin-top:0;padding:9px 10px}@media(max-width:1100px){.admin-row.riskmodel{grid-template-columns:1fr}}
+
+/* v0.17 admin database extensions */
+.admin-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.admin-tab{white-space:nowrap}
+.admin-table{overflow:auto;border:1px solid var(--border);border-radius:16px;background:#fff}
+.admin-row{min-width:900px}
+.admin-row.activity{grid-template-columns:130px 220px 360px 130px 220px 100px}
+.admin-row.riskdef{grid-template-columns:130px 150px 220px 120px 320px 180px 300px 300px 120px 100px}
+.admin-row.dictionary{grid-template-columns:180px 260px 1fr 100px}
+.admin-row.policyref{grid-template-columns:150px 160px 230px 180px 330px 230px 100px}
+.admin-row textarea{min-height:44px;resize:vertical}
+#importAdmin .large-textarea{min-height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px}
