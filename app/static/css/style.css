@@ -26,3 +26,11 @@
 .admin-row.policyref{grid-template-columns:150px 160px 230px 180px 330px 230px 100px}
 .admin-row textarea{min-height:44px;resize:vertical}
 #importAdmin .large-textarea{min-height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px}
+
+
+/* v0.18 report UX */
+.report-doc table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; }
+.report-doc th, .report-doc td { vertical-align: top; }
+.legal-note { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--border); border-left: 5px solid var(--o); border-radius: 14px; background: #fff7ed; }
+.actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.large-textarea { min-height: 160px; resize: vertical; }
