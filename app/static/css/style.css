@@ -34,3 +34,13 @@
 .legal-note { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--border); border-left: 5px solid var(--o); border-radius: 14px; background: #fff7ed; }
 .actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .large-textarea { min-height: 160px; resize: vertical; }
+
+/* v0.19 UX fixes */
+.report-mode-bar{display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin:14px 0 18px;padding:14px 18px;background:#f3fafb;border:1px solid #d7edf0;border-radius:18px}
+.report-mode-bar label{min-width:320px}
+.report-mode-bar select{width:100%}
+.client-note{border-left:5px solid var(--p);background:#eef8f9;padding:14px 18px;border-radius:14px;margin-top:16px}
+.legal-note{border-left:5px solid var(--o);background:#fff4ed;padding:14px 18px;border-radius:14px;margin-top:16px}
+input[type="date"]{font-family:inherit;color:var(--txt);min-height:46px}
+.doc-view table td,.doc-view table th{vertical-align:top}
+textarea.large-textarea,textarea{line-height:1.45}

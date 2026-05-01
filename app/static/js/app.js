@@ -98,11 +98,13 @@ function bindUI(){
   if($('clientChoiceReason')) $('clientChoiceReason').addEventListener('input', ()=>{ state.report=state.report||{}; state.report.client_choice_reason=$('clientChoiceReason').value; });
   if($('comparisonStrategy')) $('comparisonStrategy').onchange = ()=>{ state.comparison_strategy=$('comparisonStrategy').value; renderComparison(); };
   if($('comparisonStrictness')) $('comparisonStrictness').onchange = renderComparison;
+  if($('reportMode')) $('reportMode').onchange = renderClientReport;
   if($('refreshGuideBtn')) $('refreshGuideBtn').onclick = renderGuide;
   if($('saveSuggestionBtn')) $('saveSuggestionBtn').onclick = saveSuggestion;
   if($('loadSuggestionsBtn')) $('loadSuggestionsBtn').onclick = loadSuggestions;
   document.querySelectorAll('input[name=advisorMode]').forEach(r=>r.onchange=renderGuide);
   ['insuranceStart','insurancePeriodSelect','insurancePeriodCustom','turnover','employees','territorySelect','territoryCustom','exportSelect','exportCustom','clientIco','clientName','clientLegal','clientAddress','clientDataBox','clientContact','clientEmail','clientPhone','clientWeb','adviserName','adviserEmail','adviserCompany','adviserRegistration'].forEach(id=>$(id).addEventListener('input', updateAll));
+  ['turnover'].forEach(id=>$(id).addEventListener('blur', e=>{ normaliseMoneyInput(e.target); updateAll(); }));
 }
 
 function showView(id){
@@ -247,6 +249,7 @@ function renderOffers(){
   insurers.forEach(i=>{ if(!state.offers[i.id]) state.offers[i.id]={premium:'',deductible:'',valid_until:'',status:'čekáme na nabídku',note:'',coverages:{}}; });
   $('offersList').innerHTML = insurers.map(i=>offerCardHtml(i)).join('');
   $('offersList').querySelectorAll('input,select,textarea').forEach(el=>el.oninput=()=>{ collectOffers(true); renderComparison(); });
+  $('offersList').querySelectorAll('.money-input').forEach(el=>el.onblur=()=>{ normaliseMoneyInput(el); collectOffers(true); renderComparison(); });
 }
 function getPolicyReference(insurerId, riskId){
   return (CATALOG.policyReferences||[]).find(x=>x.insurer_id===insurerId && x.risk_id===riskId) || null;
@@ -264,7 +267,7 @@ function offerCardHtml(insurer){
     const sourceHint=ref ? `${ref.document}; ${ref.article}` : 'doplnit VPP/DPP, článek/odstavec';
     return `<div class="coverage-row rich" data-risk-id="${r.id}"><div><b>${r.name}</b><small>Požadavek: ${r.limit||''}</small>${aliases}</div><select class="cov-state"><option ${c.state==='nevyhodnoceno'?'selected':''}>nevyhodnoceno</option><option ${c.state==='splněno'?'selected':''}>splněno</option><option ${c.state==='částečně'?'selected':''}>částečně</option><option ${c.state==='nesplněno'?'selected':''}>nesplněno</option><option ${c.state==='výluka'?'selected':''}>výluka</option></select><input class="cov-limit" value="${c.limit||''}" placeholder="limit v nabídce"><input class="cov-original" value="${c.original||''}" placeholder="název v nabídce pojišťovny"><input class="cov-source" value="${c.source||sourceHint}" placeholder="VPP/DPP, článek"><input class="cov-note" value="${c.note||''}" placeholder="poznámka / rozdíl / výluka"></div>`;
   }).join('');
-  return `<div class="offer-card" data-insurer-id="${insurer.id}"><div class="section-head"><div><h3>${insurer.short||''} – ${insurer.name||''}</h3><p class="muted">Nabídku nepřepisujeme volným textem. Každou položku párujeme na jednotné riziko ASTORIE, zapisujeme původní název z nabídky a zdroj ve VPP/DPP.</p></div><span class="pill">nabídka</span></div><div class="grid4"><label>Stav nabídky<select class="off-status"><option ${o.status==='čekáme na nabídku'?'selected':''}>čekáme na nabídku</option><option ${o.status==='doručeno'?'selected':''}>doručeno</option><option ${o.status==='doplnit dotaz'?'selected':''}>doplnit dotaz</option><option ${o.status==='nepoptáno/nepodáno'?'selected':''}>nepoptáno/nepodáno</option></select></label><label>Roční pojistné<input class="off-premium" value="${o.premium||''}" placeholder="např. 48 000 Kč"></label><label>Spoluúčast<input class="off-deductible" value="${o.deductible||''}" placeholder="např. 10 000 Kč"></label><label>Platnost nabídky<input class="off-valid" value="${o.valid_until||''}" placeholder="např. 30. 6. 2026"></label></div><label>Manažerské shrnutí nabídky<textarea class="off-note" placeholder="silné/slabé stránky, dotazy na pojišťovnu, podstatné výluky...">${o.note||''}</textarea></label><h4>Krytí podle jednotných rizik ASTORIE</h4><div class="coverage-table rich"><div class="coverage-head rich"><b>Riziko</b><b>Stav</b><b>Limit</b><b>Název v nabídce</b><b>Zdroj VPP/DPP</b><b>Poznámka</b></div>${coverageRows}</div></div>`;
+  return `<div class="offer-card" data-insurer-id="${insurer.id}"><div class="section-head"><div><h3>${insurer.short||''} – ${insurer.name||''}</h3><p class="muted">Nabídku nepřepisujeme volným textem. Každou položku párujeme na jednotné riziko ASTORIE, zapisujeme původní název z nabídky a zdroj ve VPP/DPP.</p></div><span class="pill">nabídka</span></div><div class="grid4"><label>Stav nabídky<select class="off-status"><option ${o.status==='čekáme na nabídku'?'selected':''}>čekáme na nabídku</option><option ${o.status==='doručeno'?'selected':''}>doručeno</option><option ${o.status==='doplnit dotaz'?'selected':''}>doplnit dotaz</option><option ${o.status==='nepoptáno/nepodáno'?'selected':''}>nepoptáno/nepodáno</option></select></label><label>Roční pojistné<input class="off-premium money-input" value="${o.premium||''}" placeholder="např. 48 000 Kč"></label><label>Spoluúčast<input class="off-deductible money-input" value="${o.deductible||''}" placeholder="např. 10 000 Kč"></label><label>Platnost nabídky<input class="off-valid date-input" type="date" value="${o.valid_until||''}"></label></div><label>Manažerské shrnutí nabídky<textarea class="off-note" placeholder="silné/slabé stránky, dotazy na pojišťovnu, podstatné výluky...">${o.note||''}</textarea></label><h4>Krytí podle jednotných rizik ASTORIE</h4><div class="coverage-table rich"><div class="coverage-head rich"><b>Riziko</b><b>Stav</b><b>Limit</b><b>Název v nabídce</b><b>Zdroj VPP/DPP</b><b>Poznámka</b></div>${coverageRows}</div></div>`;
 }
 function collectOffers(updateState){
   document.querySelectorAll('.offer-card').forEach(card=>{
@@ -288,6 +291,28 @@ function getRiskModel(riskId, activityCode){
 function moneyNumber(v){
   const n = parseFloat((v||'').toString().replace(/[^0-9,.-]/g,'').replace(',', '.'));
   return isNaN(n) ? null : n;
+}
+function formatMoney(value){
+  if(value === null || value === undefined || value === '') return '—';
+  const n = moneyNumber(value);
+  if(n === null) return value;
+  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(n) + ' Kč';
+}
+function formatMoneyMaybe(value){
+  if(!value) return '—';
+  return formatMoney(value);
+}
+function normaliseMoneyInput(el){
+  const n = moneyNumber(el.value);
+  if(n !== null) el.value = new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(n) + ' Kč';
+}
+function formatDateCz(value){
+  if(!value) return '—';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(value)){
+    const parts=value.split('-');
+    return parts[2]+'.'+parts[1]+'.'+parts[0];
+  }
+  return value;
 }
 function coverageBase(c){
   const st=(c?.state||'').toLowerCase();
@@ -357,16 +382,16 @@ function renderComparison(){
   const head = `<tr><th>Kritérium / riziko</th>${insurers.map(i=>`<th>${i.short||i.name}</th>`).join('')}</tr>`;
   const summaryRows = [
     ['Stav nabídky', i=>state.offers[i.id]?.status||'čekáme na nabídku'],
-    ['Roční pojistné', i=>state.offers[i.id]?.premium||'—'],
-    ['Spoluúčast', i=>state.offers[i.id]?.deductible||'—'],
-    ['Platnost nabídky', i=>state.offers[i.id]?.valid_until||'—'],
+    ['Roční pojistné', i=>formatMoneyMaybe(state.offers[i.id]?.premium)],
+    ['Spoluúčast', i=>formatMoneyMaybe(state.offers[i.id]?.deductible)],
+    ['Platnost nabídky', i=>formatDateCz(state.offers[i.id]?.valid_until)],
     ['Celkové skóre', i=>offerQuality(i).score + ' / 100'],
     ['Skóre krytí', i=>offerQuality(i).coverageScore + ' / 100'],
     ['Skóre ceny', i=>offerQuality(i).priceScore + ' / 100'],
     ['Verdikt', i=>offerQuality(i).verdict],
     ['Poznámka', i=>state.offers[i.id]?.note||'—']
   ].map(([label,fn])=>`<tr><td><b>${label}</b></td>${insurers.map(i=>`<td>${fn(i)}</td>`).join('')}</tr>`).join('');
-  const riskRows = activeRisks().map(r=>`<tr><td><b>${r.name}</b><br><span class="muted">Požadavek ASTORIE: ${r.limit||''}</span><br><small>${(()=>{const m=getRiskModel(r.id,state.activity?.code); return 'Kritičnost: '+(m.criticality||'—')+' · váha: '+(m.weight||'—')+' · povinnost: '+(m.obligation||'—');})()}</small></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; const src=c.source?`<br><small>Zdroj: ${c.source}</small>`:''; const orig=c.original?`<br><small>Název v nabídce: ${c.original}</small>`:''; return `<td><b class="cov ${slug(c.state)}">${c.state||'nevyhodnoceno'}</b><br>${c.limit||''}${orig}${src}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`).join('');
+  const riskRows = activeRisks().map(r=>`<tr><td><b>${r.name}</b><br><span class="muted">Požadavek ASTORIE: ${formatMoneyMaybe(r.limit)}</span><br><small>${(()=>{const m=getRiskModel(r.id,state.activity?.code); return 'Kritičnost: '+(m.criticality||'—')+' · váha: '+(m.weight||'—')+' · povinnost: '+(m.obligation||'—');})()}</small></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; const src=c.source?`<br><small>Zdroj: ${c.source}</small>`:''; const orig=c.original?`<br><small>Název v nabídce: ${c.original}</small>`:''; return `<td><b class="cov ${slug(c.state)}">${c.state||'nevyhodnoceno'}</b><br>${formatMoneyMaybe(c.limit)}${orig}${src}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`).join('');
   const strategy = strategyWeights();
   const recommendation = rec ? `<div class="recommend-box"><h3>Pracovní analytické upozornění systému</h3><p><b>Nejvyšší analytické skóre má: ${rec.insurer.short||rec.insurer.name}</b> – celkové skóre ${rec.score}/100, krytí ${rec.coverageScore}/100, cena ${rec.priceScore}/100. Režim: ${strategy.label}.</p><p>Toto není finální doporučení ani rozhodnutí. Poradce musí ověřit VPP/DPP/ZPP, sublimity, výluky a skutečné potřeby klienta.</p>${rec.warnings.length?`<p><b>Kritické body k ověření:</b><br>${rec.warnings.map(x=>'• '+x).join('<br>')}</p>`:(rec.missing.length?`<p><b>Body k ověření:</b> ${rec.missing.join(', ')}</p>`:'<p>U nabídky s nejvyšším skóre nejsou zatím evidována nesplněná hlavní rizika.</p>')}</div>` : '';
   $('comparisonDoc').innerHTML = `<h2>Porovnání nabídek</h2><p class="muted">Srovnání pracuje s jednotným názvoslovím ASTORIE. U každé položky zůstává původní název z nabídky pojišťovny a zdroj ve VPP/DPP, aby poradce mohl vše ověřit.</p>${recommendation}<h3>Základní parametry</h3><table><tbody>${head}${summaryRows}</tbody></table><h3>Krytí rizik + zdroje</h3><table><tbody>${head}${riskRows}</tbody></table>`;
@@ -408,21 +433,25 @@ function renderClientReport(){
   if($('clientSelectedOffer')) $('clientSelectedOffer').value = state.report?.client_selected_offer || '';
   if($('clientChoiceReason')) $('clientChoiceReason').value = state.report?.client_choice_reason || '';
   if(!insurers.length){ $('clientReportDoc').innerHTML='<h2>Srovnávací zpráva</h2><p class="muted">Nejdříve vyber pojišťovny v poptávce.</p>'; return; }
+  const mode = $('reportMode')?.value || 'internal';
+  const isClientMode = mode === 'client';
   const alerts=buildAdvisoryAlerts();
   const summaryRows = insurers.map(i=>{
     const o=state.offers[i.id]||{}; const ql=offerQuality(i);
-    return `<tr><td><b>${i.short||i.name}</b><br><span class="muted">${i.name||''}</span></td><td>${o.status||'čekáme na nabídku'}</td><td>${o.premium||'—'}</td><td>${o.deductible||'—'}</td><td>${ql.verdict}<br><small>analytické skóre ${ql.score}/100</small></td><td>${o.note||'—'}</td></tr>`;
+    return `<tr><td><b>${i.short||i.name}</b><br><span class="muted">${i.name||''}</span></td><td>${o.status||'čekáme na nabídku'}</td><td>${formatMoneyMaybe(o.premium)}</td><td>${formatMoneyMaybe(o.deductible)}</td><td>${ql.verdict}<br><small>analytické skóre ${ql.score}/100</small></td><td>${o.note||'—'}</td></tr>`;
   }).join('');
   const riskRows = risks.map(r=>{
     const m=getRiskModel(r.id,state.activity?.code);
-    return `<tr><td><b>${r.name}</b><br><small>${m.obligation||'doporučené'} · ${m.criticality||'—'} · limit: ${r.limit||m.default_limit||'—'}</small></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; return `<td><b class="cov ${slug(c.state)}">${coverageLabel(c.state)}</b><br>${c.limit||'limit neuveden'}${c.original?`<br><small>Název v nabídce: ${c.original}</small>`:''}${c.source?`<br><small>Zdroj: ${c.source}</small>`:''}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`;
+    return `<tr><td><b>${r.name}</b><br><small>${m.obligation||'doporučené'} · ${m.criticality||'—'} · limit: ${formatMoneyMaybe(r.limit||m.default_limit)}</small></td>${insurers.map(i=>{ const c=state.offers[i.id]?.coverages?.[r.id]||{}; return `<td><b class="cov ${slug(c.state)}">${coverageLabel(c.state)}</b><br>${c.limit?formatMoneyMaybe(c.limit):'limit neuveden'}${c.original?`<br><small>Název v nabídce: ${c.original}</small>`:''}${c.source?`<br><small>Zdroj: ${c.source}</small>`:''}${c.note?`<br><span class="muted">${c.note}</span>`:''}</td>`; }).join('')}</tr>`;
   }).join('');
-  const alertsHtml = alerts.length ? `<ul>${alerts.map(a=>`<li>${a}</li>`).join('')}</ul>` : '<p>V aktuálně zadaných datech nejsou evidována kritická upozornění. To nenahrazuje kontrolu nabídky, VPP/DPP/ZPP a případných výluk.</p>';
+  const alertsHtml = isClientMode
+    ? (alerts.length ? '<p>U některých variant byly identifikovány rozdíly v rozsahu krytí, limitech nebo výlukách. Tyto body budou s klientem projednány před výběrem finální varianty.</p>' : '<p>V zadaných podkladech nebyly evidovány zásadní rozdíly vyžadující zvláštní upozornění. Přesto je nutné finální variantu vždy projednat s klientem.</p>')
+    : (alerts.length ? `<ul>${alerts.map(a=>`<li>${a}</li>`).join('')}</ul>` : '<p>V aktuálně zadaných datech nejsou evidována kritická upozornění. To nenahrazuje kontrolu nabídky, VPP/DPP/ZPP a případných výluk.</p>');
   const selected = state.report?.client_selected_offer || 'bude doplněno po projednání s klientem';
   const reason = state.report?.client_choice_reason || 'bude doplněno po projednání s klientem';
   $('clientReportDoc').innerHTML = `
     <h2>Srovnávací zpráva k nabídkám pojištění</h2>
-    <p class="muted">Tento dokument je analytický podklad pro poradce a klienta. Aplikace automaticky strukturuje nabídky, upozorňuje na rozdíly a uvádí dostupné zdroje. Finální doporučení a volbu řešení potvrzuje poradce s klientem.</p>
+    <p class="muted">${isClientMode ? 'Tento dokument shrnuje obdržené nabídky a hlavní rozdíly v rozsahu krytí, limitech a spoluúčastech. Slouží jako podklad pro společné projednání variant s klientem.' : 'Tento dokument je pracovní analytický podklad pro poradce. Aplikace strukturuje nabídky, upozorňuje na rozdíly a uvádí dostupné zdroje. Finální doporučení a volbu řešení potvrzuje poradce s klientem.'}</p>
     <h3>1. Identifikace klienta</h3>
     <table><tbody>
       <tr><td>Klient</td><td><b>${client.name||'—'}</b></td></tr>
@@ -436,13 +465,13 @@ function renderClientReport(){
     <table><thead><tr><th>Pojišťovna</th><th>Stav</th><th>Roční pojistné</th><th>Spoluúčast</th><th>Analytické vyhodnocení</th><th>Poznámka</th></tr></thead><tbody>${summaryRows}</tbody></table>
     <h3>3. Porovnání krytí rizik</h3>
     <table><thead><tr><th>Riziko / požadavek</th>${insurers.map(i=>`<th>${i.short||i.name}</th>`).join('')}</tr></thead><tbody>${riskRows}</tbody></table>
-    <h3>4. Upozornění k ověření poradcem</h3>
+    <h3>4. ${isClientMode ? 'Hlavní rozdíly k projednání' : 'Upozornění k ověření poradcem'}</h3>
     <div class="warning-list">${alertsHtml}</div>
     <h3>5. Další postup</h3>
     <p><b>Varianta zvolená klientem:</b> ${selected}</p>
     <p><b>Důvod volby klienta:</b> ${reason}</p>
     <p><b>Závěr poradce:</b> ${state.report?.advisor_note || 'bude doplněno poradcem po projednání s klientem.'}</p>
-    <div class="legal-note"><b>Upozornění:</b> Výstup aplikace je analytická pomůcka. Nenahrazuje odborné posouzení poradcem, kontrolu pojistných podmínek ani záznam z jednání. Finální doporučení klientovi musí vycházet z jeho požadavků, cílů a potřeb.</div>
+    ${isClientMode ? '<div class="client-note"><b>Poznámka:</b> Finální varianta bude zvolena po projednání rozsahu krytí, limitů, spoluúčastí a pojistného s klientem.</div>' : '<div class="legal-note"><b>Interní upozornění:</b> Výstup aplikace je analytická pomůcka. Nenahrazuje odborné posouzení poradcem, kontrolu pojistných podmínek ani záznam z jednání. Finální doporučení klientovi musí vycházet z jeho požadavků, cílů a potřeb.</div>'}
   `;
 }
 function copyClientReport(){

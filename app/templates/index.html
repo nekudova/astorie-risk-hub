@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.18 · Srovnávací zpráva</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.19 · UX + klientský výstup</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
@@ -81,7 +81,7 @@
         <section class="panel">
           <h2>3. Vstupní dotazník klienta</h2>
           <div class="grid3">
-            <label>Požadovaný počátek pojištění<input id="insuranceStart" placeholder="např. 1. 7. 2026"></label>
+            <label>Požadovaný počátek pojištění<input id="insuranceStart" type="date"></label>
             <label>Požadovaná pojistná doba
               <select id="insurancePeriodSelect"><option>1 rok</option><option>3 roky</option><option>neurčito</option><option value="custom">jiné – doplnit vlastní</option></select>
             </label>
@@ -219,11 +219,20 @@
             <div><h2>1. Generovaná srovnávací zpráva</h2><p class="muted">Text lze zkopírovat do e-mailu, dokumentu nebo použít jako podklad pro jednání.</p></div>
             <div class="actions"><button id="generateReportBtn" class="primary">Vygenerovat zprávu</button><button id="copyReportBtn" class="secondary">Zkopírovat zprávu</button></div>
           </div>
+          <div class="report-mode-bar">
+            <label>Typ zprávy
+              <select id="reportMode">
+                <option value="internal" selected>Interní pracovní zpráva pro poradce</option>
+                <option value="client">Klientský přehled bez interních upozornění</option>
+              </select>
+            </label>
+            <span class="hint">Interní zpráva obsahuje body k ověření. Klientská verze je formulovaná srozumitelněji.</span>
+          </div>
           <div id="clientReportDoc" class="doc-view report-doc"></div>
         </section>
         <section class="panel">
           <h2>2. Závěr poradce / další postup</h2>
-          <p class="muted">Tuto část doplňuje poradce podle skutečného jednání s klientem. Není vyplňována automaticky jako finální rozhodnutí.</p>
+          <p class="muted">Tuto část doplňuje poradce podle skutečného jednání s klientem. Text se propíše do části „Další postup“ ve zprávě a zůstává editovatelný.</p>
           <label>Doporučení / komentář poradce<textarea id="advisorReportNote" class="large-textarea" placeholder="Doplňte vlastní závěr, vysvětlení klientovi, vybrané řešení, případné požadavky na dopracování nabídky pojišťovnou..."></textarea></label>
           <div class="grid2">
             <label>Varianta zvolená klientem<input id="clientSelectedOffer" placeholder="např. Kooperativa / Allianz / ČPP"></label>
