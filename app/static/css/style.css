@@ -12,3 +12,5 @@
 
 .large-textarea{width:100%;min-height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px;line-height:1.45;border:1px solid var(--border);border-radius:18px;padding:16px;background:#fbfdfe;color:#063d46;box-sizing:border-box;}
 .ai-note{border-left:5px solid var(--orange);background:#fff7f3;border-radius:16px;padding:14px 18px;margin:12px 0;}
+
+.score-ok{background:#d7f5e1;color:#146c2e}.score-warn{background:#fff3cd;color:#856404}.score-bad{background:#fde2e1;color:#9a1d16}.admin-row.riskmodel{grid-template-columns:110px 120px 1.2fr 120px 120px 90px 160px 1.5fr 90px}.admin-row.riskmodel textarea{min-height:44px;margin-top:0;padding:9px 10px}@media(max-width:1100px){.admin-row.riskmodel{grid-template-columns:1fr}}
