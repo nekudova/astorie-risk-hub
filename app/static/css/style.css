@@ -44,3 +44,76 @@
 input[type="date"]{font-family:inherit;color:var(--txt);min-height:46px}
 .doc-view table td,.doc-view table th{vertical-align:top}
 textarea.large-textarea,textarea{line-height:1.45}
+
+
+/* v0.23 – profesionální admin a načítání uložených poptávek */
+.modal-card.wide{max-width:980px;width:min(980px,94vw);}
+.admin-detail-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+.admin-detail-form label{font-weight:800;color:var(--p);display:flex;flex-direction:column;gap:6px;}
+.admin-detail-form input,.admin-detail-form select,.admin-detail-form textarea{width:100%;box-sizing:border-box;}
+.admin-detail-form textarea{min-height:160px;line-height:1.45;white-space:pre-wrap;}
+.admin-detail-form .full{grid-column:1 / -1;}
+.modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:18px;}
+.admin-row .adm-open-detail{white-space:nowrap;}
+.admin-row textarea{min-height:48px;max-height:82px;overflow:auto;}
+.admin-row input,.admin-row textarea,.admin-row select{font-size:15px;}
+#savedInquiryModalList .item{align-items:center;}
+#savedInquiryModalList .item button{min-width:130px;}
+.item .item-actions{display:flex;gap:10px;align-items:center;}
+@media(max-width:850px){.admin-detail-form{grid-template-columns:1fr}.modal-card.wide{width:96vw}}
+
+/* MVP 0.24 – profesionálnější admin práce s větším množstvím dat */
+.admin-workbar{display:grid;grid-template-columns:minmax(220px,360px) minmax(220px,1fr) auto;gap:14px;align-items:end;background:#f6fbfc;border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin:14px 0 12px;position:sticky;top:174px;z-index:15;box-shadow:0 8px 18px rgba(0,61,76,.06)}
+.admin-workbar label{margin:0}.admin-workbar input,.admin-workbar select{margin-top:6px;background:white}.admin-workbar .muted{align-self:center;font-size:14px}.admin-empty{padding:22px;color:var(--mut);font-weight:800;background:#fff}.admin-table{max-height:65vh;overflow:auto;position:relative}.admin-head{position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--line)}.admin-row .adm-open-detail{background:var(--p);color:#fff;border-color:var(--p);padding:10px 14px;font-size:14px;min-width:118px}.admin-row .adm-del{background:#f2f8fa;color:#9a1d16;border-color:#d7e6ea}.admin-row textarea{line-height:1.25}.admin-detail-form textarea{min-height:180px!important}.admin-detail-form input,.admin-detail-form textarea,.admin-detail-form select{font-size:17px}.admin-section .section-head{position:sticky;top:86px;z-index:14;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:12px 0 8px;margin-top:-4px}.admin-tabs{position:sticky;top:86px;z-index:18;background:rgba(238,246,247,.95);backdrop-filter:blur(8px);padding:10px;border-radius:18px;border:1px solid var(--line)}
+@media(max-width:900px){.admin-workbar{grid-template-columns:1fr;top:130px}.admin-section .section-head,.admin-tabs{position:static}.admin-table{max-height:none}.admin-head{position:static}}
+
+
+/* MVP 0.26 – BO admin bez dvojitého scrollování + kompaktní režim */
+body{font-size:15px;}
+.admin-section{max-width:none;}
+.admin-table{
+  max-height:none!important;
+  overflow-x:auto!important;
+  overflow-y:visible!important;
+  border-radius:16px;
+}
+.admin-row{min-width:1040px;padding:8px 10px!important;gap:8px!important;}
+.admin-row input,.admin-row select,.admin-row textarea{
+  font-size:13px!important;
+  padding:8px 10px!important;
+  min-height:38px;
+}
+.admin-row textarea{min-height:38px!important;max-height:62px!important;}
+.admin-head{position:sticky!important;top:0!important;background:#eef6f7!important;z-index:12!important;}
+.admin-workbar{top:92px!important;position:sticky!important;z-index:20!important;grid-template-columns:minmax(220px,360px) minmax(220px,360px) 1fr!important;}
+.admin-tabs{top:0!important;position:sticky!important;z-index:21!important;}
+.admin-row .adm-open-detail{
+  min-width:110px!important;
+  padding:8px 10px!important;
+  font-size:13px!important;
+}
+.admin-row .adm-del{padding:8px 10px!important;font-size:13px!important;}
+.admin-row.activity{grid-template-columns:120px 220px minmax(260px,1fr) 120px 180px 110px 90px!important;}
+.admin-row.insurer{grid-template-columns:110px minmax(280px,1fr) 100px 100px 120px 90px!important;}
+.admin-row.adviser{grid-template-columns:240px 240px 110px 220px 220px 120px 90px!important;}
+.admin-row.reqtype{grid-template-columns:180px minmax(340px,1fr) 120px 90px!important;}
+.admin-row.riskdef{grid-template-columns:110px 135px 210px 110px minmax(260px,1fr) 150px minmax(230px,1fr) minmax(230px,1fr) 90px 120px 90px!important;}
+.admin-row.riskmodel{grid-template-columns:110px 125px 210px 110px 110px 80px 150px minmax(260px,1fr) 120px 90px!important;}
+.admin-row.dictionary{grid-template-columns:160px 240px minmax(360px,1fr) 120px 90px!important;}
+.admin-row.policyref{grid-template-columns:130px 140px 210px 160px minmax(300px,1fr) 220px 120px 90px!important;}
+.modal-card.wide{width:min(1100px,96vw)!important;max-height:92vh!important;overflow:auto!important;}
+.admin-detail-form input,.admin-detail-form textarea,.admin-detail-form select{font-size:15px!important;}
+.admin-detail-form textarea{min-height:220px!important;}
+@media(max-width:900px){.admin-workbar{position:static!important;grid-template-columns:1fr!important}.admin-tabs{position:static!important}.admin-row{min-width:900px!important}}
+
+
+/* MVP 0.26 – workflow evidence BO/poradce */
+.active-inquiry-banner{display:flex;justify-content:space-between;gap:18px;align-items:center;margin:14px 0 18px;padding:14px 18px;border:1px solid #cfe7eb;background:#f4fbfc;border-radius:18px;box-shadow:0 8px 18px rgba(0,61,76,.06)}
+.active-inquiry-banner.hidden{display:none!important}.mini-label{display:block;text-transform:uppercase;letter-spacing:1.6px;color:var(--o);font-size:12px;font-weight:900}.active-actions{display:flex;align-items:end;gap:12px}.active-actions label{min-width:230px;margin:0}.active-actions select{margin-top:4px}.workflow-badge{display:inline-block;border-radius:999px;padding:6px 10px;font-weight:900;font-size:12px;background:#eef6f7;color:var(--p);white-space:nowrap}.workflow-badge.draft{background:#fff8e1;color:#775600}.workflow-badge.sent{background:#e7f0ff;color:#114c8d}.workflow-badge.offers{background:#e8f8ef;color:#126b36}.workflow-badge.client{background:#f1e8ff;color:#5f2aa5}.workflow-badge.done{background:#dff6e6;color:#176b36}.workflow-badge.bad{background:#fde2e1;color:#9a1d16}.workflow-filters{display:grid;grid-template-columns:260px 1fr;gap:14px;margin:12px 0 18px}.workflow-table{overflow-x:auto;border:1px solid var(--line);border-radius:18px;background:#fff}.workflow-table table{width:100%;border-collapse:collapse;min-width:920px}.workflow-table th{position:sticky;top:0;background:#eef6f7;color:var(--p);z-index:2}.workflow-table th,.workflow-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}.workflow-table .small-open{padding:8px 12px;font-size:13px}.workflow-adminbar{grid-template-columns:260px minmax(260px,1fr) auto!important}@media(max-width:900px){.active-inquiry-banner{flex-direction:column;align-items:stretch}.active-actions{flex-direction:column;align-items:stretch}.workflow-filters{grid-template-columns:1fr}}
+
+
+.workflow-tiles{margin:14px 0 18px 0}
+.tile-row.compact{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.workflow-tile{border:1px solid var(--line);background:#f7fbfc;border-radius:18px;padding:12px 14px;font-weight:800;color:var(--p);display:flex;justify-content:space-between;align-items:center;min-height:54px}
+.workflow-tile strong{font-size:24px}
+.workflow-tile.st-draft{background:#f4f7f8}.workflow-tile.st-sent{background:#edf6ff}.workflow-tile.st-offers{background:#fff7e8}.workflow-tile.st-client{background:#ecfff5}.workflow-tile.st-closed{background:#eef2f4}.workflow-tile.st-cancelled{background:#fff0f0}

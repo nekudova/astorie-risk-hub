@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 BASE_DIR = os.path.dirname(__file__)
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-app = FastAPI(title="ASTORIE Business Risk Hub", version="0.18")
+app = FastAPI(title="ASTORIE Business Risk Hub", version="0.28")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -83,6 +83,35 @@ def init_db() -> bool:
                 );
                 """
             )
+
+            # Bezpečná migrace pro existující databáze ze starších MVP verzí.
+            # Pokud tabulka inquiries už existovala, CREATE TABLE IF NOT EXISTS ji nezmění,
+            # proto všechny nové sloupce doplňujeme samostatně.
+            inquiry_migrations = [
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES clients(id);",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS title TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'rozpracováno';",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS adviser_email TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS adviser_name TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS activity_code TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS activity_name TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS insurance_start TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS insurance_period TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS turnover TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS employees TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS territory TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS export_info TEXT;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS selected_insurers JSONB DEFAULT '[]'::jsonb;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS additional_requirements JSONB DEFAULT '[]'::jsonb;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS risks JSONB DEFAULT '[]'::jsonb;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS full_payload JSONB NOT NULL DEFAULT '{}'::jsonb;",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();",
+                "ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();",
+            ]
+            for stmt in inquiry_migrations:
+                cur.execute(stmt)
+            cur.execute("UPDATE inquiries SET title = COALESCE(NULLIF(title,''), 'Poptávka – klient') WHERE title IS NULL OR title='';")
+            cur.execute("UPDATE inquiries SET status = COALESCE(NULLIF(status,''), 'rozpracováno') WHERE status IS NULL OR status='';")
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
@@ -167,7 +196,7 @@ def health():
         ok = init_db()
     except Exception:
         ok = False
-    return {"ok": True, "database_connected": ok, "version": "0.18"}
+    return {"ok": True, "database_connected": ok, "version": "0.28"}
 
 
 def get_catalogs() -> Dict[str, Any]:
@@ -397,22 +426,51 @@ def list_inquiries():
     if not conn:
         return {"ok": True, "db": False, "items": []}
     try:
+        # Zajistí doplnění sloupců i u databáze vytvořené starší verzí aplikace.
+        init_db()
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT i.id, i.title, i.status, i.activity_name, i.adviser_name, i.adviser_email,
-                       i.created_at, i.updated_at, c.ico, c.name AS client_name
+                SELECT
+                    i.id,
+                    COALESCE(NULLIF(i.title,''), 'Poptávka – klient') AS title,
+                    COALESCE(NULLIF(i.status,''), 'rozpracováno') AS status,
+                    COALESCE(i.activity_name, i.full_payload->'activity'->>'name', '') AS activity_name,
+                    COALESCE(i.activity_code, i.full_payload->'activity'->>'code', '') AS activity_code,
+                    COALESCE(i.adviser_name, i.full_payload->'adviser'->>'name', '') AS adviser_name,
+                    COALESCE(i.adviser_email, i.full_payload->'adviser'->>'email', '') AS adviser_email,
+                    i.created_at,
+                    i.updated_at,
+                    COALESCE(c.ico, i.full_payload->'client'->>'ico', '') AS ico,
+                    COALESCE(c.name, i.full_payload->'client'->>'name', '') AS client_name,
+                    CASE
+                        WHEN jsonb_typeof(COALESCE(i.full_payload->'offers', '{}'::jsonb)) = 'object'
+                            THEN jsonb_object_length(COALESCE(i.full_payload->'offers', '{}'::jsonb))
+                        WHEN jsonb_typeof(COALESCE(i.full_payload->'offers', '[]'::jsonb)) = 'array'
+                            THEN jsonb_array_length(COALESCE(i.full_payload->'offers', '[]'::jsonb))
+                        ELSE 0
+                    END AS offer_count,
+                    CASE
+                        WHEN jsonb_typeof(COALESCE(i.selected_insurers, '[]'::jsonb)) = 'array'
+                            THEN jsonb_array_length(COALESCE(i.selected_insurers, '[]'::jsonb))
+                        ELSE 0
+                    END AS selected_insurer_count,
+                    COALESCE(i.full_payload->'report'->>'client_selected_offer', '') AS client_selected_offer
                 FROM inquiries i
                 LEFT JOIN clients c ON c.id = i.client_id
-                ORDER BY i.updated_at DESC
-                LIMIT 100;
+                ORDER BY i.updated_at DESC NULLS LAST, i.id DESC
+                LIMIT 500;
                 """
             )
             rows = cur.fetchall()
             for r in rows:
                 for k in ("created_at", "updated_at"):
-                    if r.get(k): r[k] = r[k].isoformat()
+                    if r.get(k):
+                        r[k] = r[k].isoformat()
             return {"ok": True, "db": True, "items": rows}
+    except Exception as exc:
+        print(f"List inquiries failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Nepodařilo se načíst poptávky: {exc}")
     finally:
         conn.close()
 
@@ -424,11 +482,33 @@ def get_inquiry(inquiry_id: int):
         raise HTTPException(status_code=503, detail="Databáze není připojena.")
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT full_payload FROM inquiries WHERE id=%s", (inquiry_id,))
+            cur.execute("""
+                SELECT i.*, c.ico, c.name AS client_name, c.legal_form, c.address, c.data_box,
+                       c.contact_person, c.contact_email, c.contact_phone, c.website
+                FROM inquiries i
+                LEFT JOIN clients c ON c.id = i.client_id
+                WHERE i.id=%s
+            """, (inquiry_id,))
             row = cur.fetchone()
             if not row:
                 raise HTTPException(status_code=404, detail="Poptávka nebyla nalezena.")
-            return {"ok": True, "item": row["full_payload"]}
+            item = row.get("full_payload") or {}
+            if not isinstance(item, dict):
+                item = {}
+            item["id"] = row.get("id")
+            item["status"] = row.get("status") or item.get("status") or "rozpracováno"
+            item.setdefault("title", row.get("title") or "")
+            item.setdefault("adviser", {"name": row.get("adviser_name") or "", "email": row.get("adviser_email") or ""})
+            item.setdefault("activity", {"code": row.get("activity_code") or "", "name": row.get("activity_name") or ""})
+            if not item.get("client"):
+                item["client"] = {
+                    "ico": row.get("ico") or "", "name": row.get("client_name") or "",
+                    "legal_form": row.get("legal_form") or "", "address": row.get("address") or "",
+                    "data_box": row.get("data_box") or "", "contact_person": row.get("contact_person") or "",
+                    "contact_email": row.get("contact_email") or "", "contact_phone": row.get("contact_phone") or "",
+                    "website": row.get("website") or "",
+                }
+            return {"ok": True, "item": item}
     finally:
         conn.close()
 

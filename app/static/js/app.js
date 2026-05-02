@@ -7,6 +7,7 @@ let state = {
 };
 let currentRiskIndex = null;
 let currentUser = null;
+let currentAdminDetail = null;
 
 const $ = (id)=>document.getElementById(id);
 const text = (v)=> (v ?? "").toString().trim();
@@ -68,6 +69,14 @@ function bindUI(){
   $('addRequirementBtn').onclick = ()=>addRequirement();
   $('saveInquiryBtn').onclick = saveInquiry;
   $('loadListBtn').onclick = loadInquiries;
+  if($('changeInquiryBtn')) $('changeInquiryBtn').onclick = loadInquiries;
+  if($('inquiryStatusSelect')) $('inquiryStatusSelect').onchange = ()=>{ state.status=$('inquiryStatusSelect').value; updateActiveInquiryBanner(); };
+  if($('refreshMyInquiriesBtn')) $('refreshMyInquiriesBtn').onclick = renderMyInquiries;
+  if($('myInquiryStatusFilter')) $('myInquiryStatusFilter').onchange = renderMyInquiries;
+  if($('myInquirySearch')) $('myInquirySearch').oninput = renderMyInquiries;
+  if($('refreshAdminInquiriesBtn')) $('refreshAdminInquiriesBtn').onclick = renderAdminInquiries;
+  if($('adminInquiryStatusFilter')) $('adminInquiryStatusFilter').onchange = renderAdminInquiries;
+  if($('adminInquirySearch')) $('adminInquirySearch').oninput = renderAdminInquiries;
   $('newInquiryBtn').onclick = ()=>resetInquiry(true);
   $('refreshOffersBtn').onclick = renderOffers;
   if($('copyAiPromptBtn')) $('copyAiPromptBtn').onclick = copyAIPrompt;
@@ -77,6 +86,11 @@ function bindUI(){
   if($('aiDocsLabel')) $('aiDocsLabel').addEventListener('input', renderAIPrompt);
   $('closeModal').onclick = ()=>$('riskModal').classList.add('hidden');
   $('saveRiskDetail').onclick = saveRiskModal;
+  if($('closeSavedModal')) $('closeSavedModal').onclick = ()=>$('savedInquiryModal').classList.add('hidden');
+  if($('closeAdminDetail')) $('closeAdminDetail').onclick = ()=>$('adminDetailModal').classList.add('hidden');
+  if($('cancelAdminDetail')) $('cancelAdminDetail').onclick = ()=>$('adminDetailModal').classList.add('hidden');
+  if($('saveAdminDetail')) $('saveAdminDetail').onclick = saveAdminDetailModal;
+  setupAdminDetailObserver();
   document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>showTab(btn.dataset.tab));
   document.querySelectorAll('.admin-tab').forEach(btn=>btn.onclick=()=>showAdminTab(btn.dataset.adminTab));
   $('addInsurerAdmin').onclick = addAdminInsurer;
@@ -112,6 +126,7 @@ function showView(id){
   document.querySelectorAll('.app-section').forEach(x=>x.classList.add('hidden'));
   $(id).classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  if(id==='myInquiriesView') renderMyInquiries();
   if(id==='aiView') renderAIWorkflow();
   if(id==='offersView') renderOffers();
   if(id==='comparisonView') renderComparison();
@@ -141,6 +156,7 @@ function resetInquiry(confirmIt){
   $('inquiriesList').innerHTML='';
   fillAdviser();
   selectActivity((CATALOG.activities&&CATALOG.activities[0]?.code) || 'construction');
+  updateActiveInquiryBanner();
   updateAll();
 }
 
@@ -219,7 +235,8 @@ function insurerName(id){ const i=(CATALOG.insurers||[]).find(x=>x.id===id); ret
 function activeRisks(){ return (state.risks||[]).filter(r=>r.enabled); }
 function selectedInsurers(){ return (state.selected_insurers||[]).map(id=>(CATALOG.insurers||[]).find(i=>i.id===id)).filter(Boolean); }
 
-function updateAll(){ collectForm(); updateDocs(); renderComparison(); if(document.getElementById('guideView') && !document.getElementById('guideView').classList.contains('hidden')) renderGuide(); }
+function updateAll(){
+  updateActiveInquiryBanner(); collectForm(); updateDocs(); renderComparison(); if(document.getElementById('guideView') && !document.getElementById('guideView').classList.contains('hidden')) renderGuide(); }
 function showTab(id){
   document.querySelectorAll('.doc-view').forEach(x=>x.classList.add('hidden'));
   $(id).classList.remove('hidden');
@@ -248,8 +265,8 @@ function renderOffers(){
   if(!insurers.length){ $('offersList').innerHTML='<div class="empty">Nejdříve vyber pojišťovny v poptávce.</div>'; return; }
   insurers.forEach(i=>{ if(!state.offers[i.id]) state.offers[i.id]={premium:'',deductible:'',valid_until:'',status:'čekáme na nabídku',note:'',coverages:{}}; });
   $('offersList').innerHTML = insurers.map(i=>offerCardHtml(i)).join('');
-  $('offersList').querySelectorAll('input,select,textarea').forEach(el=>el.oninput=()=>{ collectOffers(true); renderComparison(); });
-  $('offersList').querySelectorAll('.money-input').forEach(el=>el.onblur=()=>{ normaliseMoneyInput(el); collectOffers(true); renderComparison(); });
+  $('offersList').querySelectorAll('input,select,textarea').forEach(el=>el.oninput=()=>{ collectOffers(true); renderComparison(); scheduleOfferAutosave(); });
+  $('offersList').querySelectorAll('.money-input').forEach(el=>el.onblur=()=>{ normaliseMoneyInput(el); collectOffers(true); renderComparison(); scheduleOfferAutosave(); });
 }
 function getPolicyReference(insurerId, riskId){
   return (CATALOG.policyReferences||[]).find(x=>x.insurer_id===insurerId && x.risk_id===riskId) || null;
@@ -313,6 +330,18 @@ function formatDateCz(value){
     return parts[2]+'.'+parts[1]+'.'+parts[0];
   }
   return value;
+}
+
+function formatDateTimeCz(value){
+  if(!value) return '';
+  try{
+    const d = new Date(value);
+    if(isNaN(d.getTime())) return String(value);
+    return d.toLocaleString('cs-CZ', {
+      day:'2-digit', month:'2-digit', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+  }catch(e){ return String(value); }
 }
 function coverageBase(c){
   const st=(c?.state||'').toLowerCase();
@@ -486,27 +515,72 @@ async function saveInquiry(){
   try{
     const res = await api('/api/inquiries', {method:'POST', body:JSON.stringify(state)});
     if(res.id){ state.id=res.id; $('inquiryId').value=res.id; }
+    backupInquiryLocally(state);
     $('saveStatus').textContent=res.message || 'Uloženo.';
-  }catch(e){ $('saveStatus').textContent='Chyba: '+e.message; }
+    updateActiveInquiryBanner();
+  }catch(e){
+    backupInquiryLocally(state);
+    $('saveStatus').textContent='DB chyba, uloženo alespoň lokálně v prohlížeči: '+e.message;
+  }
+}
+function localInquiryBackups(){
+  try{return JSON.parse(localStorage.getItem('arh_inquiry_backups')||'[]')}catch(e){return []}
+}
+function backupInquiryLocally(item){
+  const backups=localInquiryBackups();
+  const key = item.id ? 'db_'+item.id : 'local_'+Date.now();
+  const clean = JSON.parse(JSON.stringify({...item, local_key:key, local_saved_at:new Date().toISOString()}));
+  const idx=backups.findIndex(x=>(item.id && x.id===item.id) || x.local_key===key);
+  if(idx>=0) backups[idx]=clean; else backups.unshift(clean);
+  localStorage.setItem('arh_inquiry_backups', JSON.stringify(backups.slice(0,30)));
 }
 async function loadInquiries(){
-  $('inquiriesList').innerHTML='Načítám...';
+  const target = $('savedInquiryModalList') || $('inquiriesList');
+  if($('savedInquiryModal')) $('savedInquiryModal').classList.remove('hidden');
+  target.innerHTML='Načítám uložené poptávky...';
   try{
     const res = await api('/api/inquiries');
-    const items=res.items||[];
-    $('inquiriesList').innerHTML = items.length ? items.map(i=>`<div class="item"><div><b>#${i.id} ${i.title||''}</b><br><span class="muted">${i.client_name||''} · ${i.activity_name||''} · ${i.updated_at||''}</span></div><button class="secondary" data-id="${i.id}">Otevřít</button></div>`).join('') : '<p class="muted">Zatím nejsou uložené poptávky.</p>';
-    $('inquiriesList').querySelectorAll('button').forEach(b=>b.onclick=()=>openInquiry(b.dataset.id));
-  }catch(e){ $('inquiriesList').innerHTML='Chyba: '+e.message; }
+    const dbItems=(res.items||[]).map(x=>({...x, source:'db'}));
+    window.__lastInquiryItems = dbItems;
+    const localItems=localInquiryBackups().map(x=>({id:x.id||'', local_key:x.local_key, title:x.title||('Poptávka – '+(x.client?.name||'klient')), client_name:x.client?.name||'', activity_name:x.activity?.name||'', updated_at:x.local_saved_at||'', source:'local'}));
+    const seen=new Set();
+    const items=[...dbItems,...localItems].filter(i=>{const k=(i.source==='db'?'db_'+i.id:(i.local_key||'')); if(seen.has(k)) return false; seen.add(k); return true;});
+    renderInquiryList(items, target);
+    if($('inquiriesList') && target!==$('inquiriesList')) renderInquiryList(items, $('inquiriesList'));
+  }catch(e){
+    const localItems=localInquiryBackups().map(x=>({id:x.id||'', local_key:x.local_key, title:x.title||('Poptávka – '+(x.client?.name||'klient')), client_name:x.client?.name||'', activity_name:x.activity?.name||'', updated_at:x.local_saved_at||'', source:'local'}));
+    target.innerHTML='<p class="warning"><b>Databáze se nepodařila načíst.</b><br>'+e.message+'</p>';
+    if(localItems.length){ target.innerHTML += '<h3>Lokální záloha v tomto prohlížeči</h3>'; renderInquiryList(localItems, target, true); }
+  }
 }
-async function openInquiry(id){
-  const res = await api('/api/inquiries/'+id);
-  applyState(res.item);
+function renderInquiryList(items, container, append=false){
+  const html = items.length ? items.map(i=>`<div class="item"><div><b>${i.source==='db'?'#'+i.id:'Lokální záloha'} ${i.title||''}</b><br><span class="muted">${i.client_name||''} · ${i.activity_name||''} · ${formatDateTimeCz(i.updated_at)||i.updated_at||''}</span><br><small>Stav: <b>${i.status||'rozpracováno'}</b> · Nabídek: <b>${i.offer_count ?? countOffersFromLocal(i)}</b></small></div><div class="item-actions"><span class="pill">${i.source==='db'?'DB':'lokálně'}</span><button class="secondary" data-id="${i.id||''}" data-local="${i.local_key||''}" data-source="${i.source}">Otevřít</button></div></div>`).join('') : '<p class="muted">Zatím nejsou uložené poptávky.</p>';
+  if(append) container.innerHTML += html; else container.innerHTML = html;
+  container.querySelectorAll('button[data-source]').forEach(b=>b.onclick=()=>openInquiry(b.dataset.id,b.dataset.source,b.dataset.local));
+}
+function countOffersFromLocal(i){ try{return Object.keys(i.offers||{}).length}catch(e){return 0} }
+async function openInquiry(id, source='db', localKey=''){
+  if(source==='local'){
+    const item=localInquiryBackups().find(x=>x.local_key===localKey || String(x.id||'')===String(id));
+    if(!item){ alert('Lokální záloha nebyla nalezena.'); return; }
+    applyState(item);
+  } else {
+    const res = await api('/api/inquiries/'+id);
+    applyState(res.item);
+  }
+  if($('savedInquiryModal')) $('savedInquiryModal').classList.add('hidden');
   showView('inquiryView');
-  $('saveStatus').textContent='Poptávka načtena.';
+  $('saveStatus').textContent='Poptávka načtena včetně nabídek a zprávy.';
+  updateActiveInquiryBanner();
 }
 function applyState(s){
   state = {...state, ...s, offers:s.offers||{}};
+  if((!state.offers || !Object.keys(state.offers).length) && state.id){
+    const local = localInquiryBackups().find(x=>String(x.id||'')===String(state.id) && x.offers && Object.keys(x.offers).length);
+    if(local){ state.offers = local.offers; $('saveStatus').textContent='Nabídky byly doplněny z lokální zálohy prohlížeče.'; }
+  }
   $('inquiryId').value = state.id || '';
+  if($('inquiryStatusSelect')) $('inquiryStatusSelect').value = state.status || 'rozpracováno';
   fillAdviser();
   $('clientIco').value=state.client?.ico||''; $('clientName').value=state.client?.name||''; $('clientLegal').value=state.client?.legal_form||''; $('clientAddress').value=state.client?.address||''; $('clientDataBox').value=state.client?.data_box||''; $('clientContact').value=state.client?.contact_person||''; $('clientEmail').value=state.client?.contact_email||''; $('clientPhone').value=state.client?.contact_phone||''; $('clientWeb').value=state.client?.website||'';
   $('insuranceStart').value=state.questionnaire?.insurance_start||''; $('turnover').value=state.questionnaire?.turnover||''; $('employees').value=state.questionnaire?.employees||'';
@@ -522,17 +596,84 @@ function setSelectOrCustom(selectId, customId, value){
   if(exists) sel.value=value; else {sel.value='custom'; $(customId).value=value;}
 }
 
+
+function statusClass(st){
+  const s=(st||'rozpracováno').toLowerCase();
+  if(s.includes('uzav')) return 'done';
+  if(s.includes('zru')) return 'bad';
+  if(s.includes('klient')) return 'client';
+  if(s.includes('nabíd')) return 'offers';
+  if(s.includes('poji')) return 'sent';
+  return 'draft';
+}
+function updateActiveInquiryBanner(){
+  const b=$('activeInquiryBanner'); if(!b) return;
+  const has=!!state.id;
+  b.classList.toggle('hidden', !has);
+  if(!has) return;
+  const offerCount=Object.keys(state.offers||{}).length;
+  const client=state.client?.name || 'Bez názvu klienta';
+  const activity=state.activity?.name || 'bez činnosti';
+  $('activeInquiryTitle').textContent = `#${state.id} – ${client}`;
+  $('activeInquiryMeta').innerHTML = `<span class="workflow-badge ${statusClass(state.status)}">${state.status||'rozpracováno'}</span> · ${activity} · Nabídky: ${offerCount} · zdroj: DB`;
+  if($('inquiryStatusSelect')) $('inquiryStatusSelect').value = state.status || 'rozpracováno';
+}
+function inquiryMatchesFilters(i, status, search){
+  if(status && (i.status||'')!==status) return false;
+  if(!search) return true;
+  return JSON.stringify(i||{}).toLowerCase().includes(search.toLowerCase().trim());
+}
+async function getInquiryItems(){
+  try{ const res=await api('/api/inquiries'); window.__lastInquiryItems=(res.items||[]).map(x=>({...x,source:'db'})); return window.__lastInquiryItems; }
+  catch(e){ return localInquiryBackups().map(x=>({id:x.id||'', local_key:x.local_key, title:x.title||('Poptávka – '+(x.client?.name||'klient')), client_name:x.client?.name||'', activity_name:x.activity?.name||'', adviser_name:x.adviser?.name||'', adviser_email:x.adviser?.email||'', status:x.status||'rozpracováno', offer_count:Object.keys(x.offers||{}).length, updated_at:x.local_saved_at||'', source:'local'})); }
+}
+
+function workflowTilesHtml(items){
+  const statuses=['rozpracováno','odesláno pojišťovnám','nabídky přijaty','odesláno klientovi','uzavřeno','zrušeno'];
+  const counts=Object.fromEntries(statuses.map(s=>[s,0]));
+  (items||[]).forEach(i=>{ const st=i.status||'rozpracováno'; counts[st]=(counts[st]||0)+1; });
+  return `<div class="tile-row compact">${statuses.map(st=>`<div class="workflow-tile ${statusClass(st)}"><div>${st}</div><strong>${counts[st]||0}</strong></div>`).join('')}</div>`;
+}
+function workflowTableHtml(items, showAdvisor){
+  if(!items.length) return '<div class="admin-empty">Žádná poptávka neodpovídá filtru.</div>';
+  return `<table><thead><tr><th>ID</th><th>Klient</th><th>Činnost</th>${showAdvisor?'<th>Poradce</th>':''}<th>Stav</th><th>Nabídky</th><th>Poslední změna</th><th>Akce</th></tr></thead><tbody>${items.map(i=>`<tr><td>${i.source==='db'?'#'+i.id:'lokální'}</td><td><b>${i.client_name||i.title||'Bez názvu'}</b><br><small>${i.ico||''}</small></td><td>${i.activity_name||'—'}</td>${showAdvisor?`<td>${i.adviser_name||'—'}<br><small>${i.adviser_email||''}</small></td>`:''}<td><span class="workflow-badge ${statusClass(i.status)}">${i.status||'rozpracováno'}</span></td><td>${i.offer_count ?? 0}</td><td>${formatDateTimeCz(i.updated_at)||'—'}</td><td><button class="secondary small-open" data-id="${i.id||''}" data-local="${i.local_key||''}" data-source="${i.source||'db'}">Otevřít</button></td></tr>`).join('')}</tbody></table>`;
+}
+async function renderMyInquiries(){
+  const el=$('myInquiriesTable'); if(!el) return;
+  el.innerHTML='Načítám...';
+  const items=(await getInquiryItems()).filter(i=>(i.adviser_email||'').toLowerCase()===(currentUser?.email||'').toLowerCase() || currentUser?.role==='admin');
+  const status=$('myInquiryStatusFilter')?.value||''; const search=$('myInquirySearch')?.value||'';
+  const filtered=items.filter(i=>inquiryMatchesFilters(i,status,search));
+  if($('myInquiryTiles')) $('myInquiryTiles').innerHTML=workflowTilesHtml(items);
+  el.innerHTML=workflowTableHtml(filtered,false);
+  el.querySelectorAll('button[data-source]').forEach(b=>b.onclick=()=>openInquiry(b.dataset.id,b.dataset.source,b.dataset.local));
+}
+async function renderAdminInquiries(){
+  const el=$('adminInquiriesTable'); if(!el) return;
+  el.innerHTML='Načítám...';
+  const status=$('adminInquiryStatusFilter')?.value||''; const search=$('adminInquirySearch')?.value||'';
+  const items=(await getInquiryItems()).filter(i=>inquiryMatchesFilters(i,status,search));
+  if($('adminInquiryTiles')) $('adminInquiryTiles').innerHTML=workflowTilesHtml(items);
+  if($('adminInquiryCount')) $('adminInquiryCount').textContent=`Zobrazeno ${items.length} poptávek`;
+  el.innerHTML=workflowTableHtml(items,true);
+  el.querySelectorAll('button[data-source]').forEach(b=>b.onclick=()=>openInquiry(b.dataset.id,b.dataset.source,b.dataset.local));
+}
+
 function showAdminTab(id){
   document.querySelectorAll('.admin-section').forEach(x=>x.classList.add('hidden'));
   $(id).classList.remove('hidden');
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.toggle('active', t.dataset.adminTab===id));
 }
-function renderAdmin(){ renderAdminInsurers(); renderAdminAdvisers(); renderAdminActivities(); renderAdminRisks(); renderAdminReqTypes(); renderAdminDictionary(); renderAdminPolicyRefs(); renderRiskModelAdmin(); }
+function renderAdmin(){ ensureAdminFilters(); renderAdminInquiries(); renderAdminInsurers(); renderAdminAdvisers(); renderAdminActivities(); renderAdminRisks(); renderAdminReqTypes(); renderAdminDictionary(); renderAdminPolicyRefs(); renderRiskModelAdmin(); enhanceAdminDetailButtons(); }
 function renderAdminInsurers(){
-  const rows = (CATALOG.insurers||[]).map((i,idx)=>`<div class="admin-row insurer" data-idx="${idx}"><input class="adm-id" value="${i.id||''}" placeholder="id"><input class="adm-name" value="${i.name||''}" placeholder="název pojišťovny"><input class="adm-short" value="${i.short||''}" placeholder="zkratka"><select class="adm-active"><option value="true" ${i.active?'selected':''}>aktivní</option><option value="false" ${!i.active?'selected':''}>neaktivní</option></select><button class="secondary adm-del">Smazat</button></div>`).join('');
-  $('insurersAdminTable').innerHTML = `<div class="admin-row insurer admin-head"><div>ID</div><div>Název</div><div>Zkratka</div><div>Stav</div><div></div></div>${rows}`;
+  ensureAdminFilters();
+  const search = adminFilterText('adminInsurerSearch');
+  const list = (CATALOG.insurers||[]).map((i,idx)=>({...i,_idx:idx})).filter(i=>rowMatchesSearch(i,search));
+  const rows = list.map((i)=>`<div class="admin-row insurer" data-idx="${i._idx}"><input class="adm-id" value="${i.id||''}" placeholder="id"><input class="adm-name" value="${i.name||''}" placeholder="název pojišťovny"><input class="adm-short" value="${i.short||''}" placeholder="zkratka"><select class="adm-active"><option value="true" ${i.active?'selected':''}>aktivní</option><option value="false" ${!i.active?'selected':''}>neaktivní</option></select><button class="secondary adm-del">Smazat</button></div>`).join('');
+  $('insurersAdminTable').innerHTML = `<div class="admin-row insurer admin-head"><div>ID</div><div>Název</div><div>Zkratka</div><div>Stav</div><div></div></div>${rows || '<div class="admin-empty">Žádná pojišťovna neodpovídá filtru.</div>'}`;
   $('insurersAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.insurers.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminInsurers(); renderCatalogs(); updateAll(); });
   $('insurersAdminTable').querySelectorAll('input,select').forEach(el=>el.oninput=collectAdminInsurers);
+  enhanceAdminDetailButtons();
 }
 function collectAdminInsurers(){
   CATALOG.insurers = Array.from(document.querySelectorAll('#insurersAdminTable .admin-row.insurer:not(.admin-head)')).map(row=>({id:row.querySelector('.adm-id').value.trim() || ('ins_'+Date.now()), name:row.querySelector('.adm-name').value.trim(), short:row.querySelector('.adm-short').value.trim(), active:row.querySelector('.adm-active').value==='true'}));
@@ -540,10 +681,15 @@ function collectAdminInsurers(){
 }
 function addAdminInsurer(){ collectAdminInsurers(); CATALOG.insurers.push({id:'nova_'+Date.now(), name:'Nová pojišťovna', short:'', active:true}); renderAdminInsurers(); renderCatalogs(); }
 function renderAdminAdvisers(){
-  const rows = (CATALOG.advisers||[]).map((a,idx)=>`<div class="admin-row adviser" data-idx="${idx}"><input class="adm-email" value="${a.email||''}" placeholder="email"><input class="adm-name" value="${a.name||''}" placeholder="jméno"><select class="adm-role"><option value="advisor" ${a.role!=='admin'?'selected':''}>poradce</option><option value="admin" ${a.role==='admin'?'selected':''}>admin</option></select><input class="adm-company" value="${a.company||'ASTORIE a.s.'}" placeholder="společnost"><input class="adm-reg" value="${a.registration||''}" placeholder="registrace"><button class="secondary adm-del">Smazat</button></div>`).join('');
-  $('advisersAdminTable').innerHTML = `<div class="admin-row adviser admin-head"><div>E-mail</div><div>Jméno</div><div>Role</div><div>Společnost</div><div>Status</div><div></div></div>${rows}`;
+  ensureAdminFilters();
+  const search = adminFilterText('adminAdviserSearch');
+  const role = $('adminAdviserRoleFilter')?.value || '';
+  const list = (CATALOG.advisers||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>(!role || a.role===role) && rowMatchesSearch(a,search));
+  const rows = list.map((a)=>`<div class="admin-row adviser" data-idx="${a._idx}"><input class="adm-email" value="${a.email||''}" placeholder="email"><input class="adm-name" value="${a.name||''}" placeholder="jméno"><select class="adm-role"><option value="advisor" ${a.role!=='admin'?'selected':''}>poradce</option><option value="admin" ${a.role==='admin'?'selected':''}>admin</option></select><input class="adm-company" value="${a.company||'ASTORIE a.s.'}" placeholder="společnost"><input class="adm-reg" value="${a.registration||''}" placeholder="registrace"><button class="secondary adm-del">Smazat</button></div>`).join('');
+  $('advisersAdminTable').innerHTML = `<div class="admin-row adviser admin-head"><div>E-mail</div><div>Jméno</div><div>Role</div><div>Společnost</div><div>Status</div><div></div></div>${rows || '<div class="admin-empty">Žádný poradce neodpovídá filtru.</div>'}`;
   $('advisersAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.advisers.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminAdvisers(); });
   $('advisersAdminTable').querySelectorAll('input,select').forEach(el=>el.oninput=collectAdminAdvisers);
+  enhanceAdminDetailButtons();
 }
 function collectAdminAdvisers(){
   const oldByEmail = Object.fromEntries((CATALOG.advisers||[]).map(a=>[a.email,a]));
@@ -551,16 +697,26 @@ function collectAdminAdvisers(){
 }
 function addAdminAdviser(){ collectAdminAdvisers(); CATALOG.advisers.push({email:'novy.poradce@astorie.local', name:'Nový poradce', role:'advisor', company:'ASTORIE a.s.', registration:'samostatný zprostředkovatel', password:'Astorie2026!'}); renderAdminAdvisers(); }
 function renderAdminReqTypes(){
-  const rows = (CATALOG.requirementTypes||[]).map((r,idx)=>`<div class="admin-row reqtype" data-idx="${idx}"><input class="adm-id" value="${r.id||''}" placeholder="id"><input class="adm-name" value="${r.name||''}" placeholder="název"><button class="secondary adm-del">Smazat</button></div>`).join('');
-  $('reqTypesAdminTable').innerHTML = `<div class="admin-row reqtype admin-head"><div>ID</div><div>Název</div><div></div></div>${rows}`;
+  ensureAdminFilters();
+  const search = adminFilterText('adminReqTypeSearch');
+  const list = (CATALOG.requirementTypes||[]).map((r,idx)=>({...r,_idx:idx})).filter(r=>rowMatchesSearch(r,search));
+  const rows = list.map((r)=>`<div class="admin-row reqtype" data-idx="${r._idx}"><input class="adm-id" value="${r.id||''}" placeholder="id"><input class="adm-name" value="${r.name||''}" placeholder="název"><button class="secondary adm-del">Smazat</button></div>`).join('');
+  $('reqTypesAdminTable').innerHTML = `<div class="admin-row reqtype admin-head"><div>ID</div><div>Název</div><div></div></div>${rows || '<div class="admin-empty">Žádný typ neodpovídá filtru.</div>'}`;
   $('reqTypesAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.requirementTypes.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminReqTypes(); });
   $('reqTypesAdminTable').querySelectorAll('input').forEach(el=>el.oninput=collectAdminReqTypes);
+  enhanceAdminDetailButtons();
 }
 function collectAdminReqTypes(){ CATALOG.requirementTypes = Array.from(document.querySelectorAll('#reqTypesAdminTable .admin-row.reqtype:not(.admin-head)')).map(row=>({id:row.querySelector('.adm-id').value.trim() || ('typ_'+Date.now()), name:row.querySelector('.adm-name').value.trim()})); }
 function addAdminReqType(){ collectAdminReqTypes(); CATALOG.requirementTypes.push({id:'novy_'+Date.now(), name:'Nový typ doplňující informace'}); renderAdminReqTypes(); }
 
 function renderRiskModelAdmin(){
-  const rows = (CATALOG.riskModel||[]).map((m,idx)=>`<div class="admin-row riskmodel" data-idx="${idx}">
+  ensureAdminFilters();
+  const activity = $('adminRiskModelActivityFilter')?.value || '';
+  const search = adminFilterText('adminRiskModelSearch');
+  const all = (CATALOG.riskModel||[]).map((m,idx)=>({...m,_idx:idx}));
+  const filtered = all.filter(m=>(!activity || m.activity_code===activity) && rowMatchesSearch(m,search));
+  if($('adminRiskModelCount')) $('adminRiskModelCount').textContent = `Zobrazeno ${filtered.length} z ${all.length} pravidel`;
+  const rows = filtered.map((m)=>`<div class="admin-row riskmodel" data-idx="${m._idx}">
     <input class="rm-act" value="${m.activity_code||''}" placeholder="kód činnosti">
     <input class="rm-risk" value="${m.risk_id||''}" placeholder="id rizika">
     <input class="rm-name" value="${m.risk_name||''}" placeholder="název rizika">
@@ -569,11 +725,12 @@ function renderRiskModelAdmin(){
     <input class="rm-weight" type="number" min="0" max="150" value="${m.weight||50}" placeholder="váha">
     <input class="rm-limit" value="${m.recommended_limit||''}" placeholder="doporučený limit">
     <textarea class="rm-rec" placeholder="text doporučení">${m.recommendation_text||''}</textarea>
-    <button class="secondary adm-del">Smazat</button>
+    <button type="button" class="secondary adm-del">Smazat</button>
   </div>`).join('');
-  $('riskModelAdminTable').innerHTML = `<div class="admin-row riskmodel admin-head"><div>Činnost</div><div>Riziko ID</div><div>Název</div><div>Kritičnost</div><div>Povinnost</div><div>Váha</div><div>Limit</div><div>Doporučení</div><div></div></div>${rows}`;
+  $('riskModelAdminTable').innerHTML = `<div class="admin-row riskmodel admin-head"><div>Činnost</div><div>Riziko ID</div><div>Název</div><div>Kritičnost</div><div>Povinnost</div><div>Váha</div><div>Limit</div><div>Doporučení</div><div></div></div>${rows || '<div class="admin-empty">Žádné pravidlo neodpovídá filtru.</div>'}`;
   $('riskModelAdminTable').querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.riskModel.splice(+btn.closest('.admin-row').dataset.idx,1); renderRiskModelAdmin(); updateAll(); });
   $('riskModelAdminTable').querySelectorAll('input,select,textarea').forEach(el=>el.oninput=collectRiskModelAdmin);
+  enhanceAdminDetailButtons();
 }
 function collectRiskModelAdmin(){
   CATALOG.riskModel = Array.from(document.querySelectorAll('#riskModelAdminTable .admin-row.riskmodel:not(.admin-head)')).map(row=>({
@@ -592,7 +749,8 @@ function collectRiskModelAdmin(){
 }
 function addRiskModelRule(){
   collectRiskModelAdmin();
-  CATALOG.riskModel.push({activity_code:state.activity?.code||'stavba', risk_id:'nove_riziko', risk_name:'Nové riziko', criticality:'střední', obligation:'doporučené', weight:50, recommended_limit:'', evaluation_type:'kombinace', recommendation_text:'', warning_text:'Ověřit v podmínkách.', active:true});
+  const act=$('adminRiskModelActivityFilter')?.value || state.activity?.code || 'stavba';
+  CATALOG.riskModel.push({activity_code:act, risk_id:'nove_riziko', risk_name:'Nové riziko', criticality:'střední', obligation:'doporučené', weight:50, recommended_limit:'', evaluation_type:'kombinace', recommendation_text:'', warning_text:'Ověřit v podmínkách.', active:true});
   renderRiskModelAdmin();
 }
 
@@ -607,19 +765,64 @@ async function saveAdminCatalogs(){
 }
 
 
+function activityOptionsHtml(selected='', includeAll=true){
+  const opts = (CATALOG.activities||[]).map(a=>`<option value="${a.code||''}" ${selected===(a.code||'')?'selected':''}>${a.name||a.code||''}</option>`).join('');
+  return (includeAll?'<option value="">Všechny činnosti</option>':'') + opts;
+}
+function adminFilterText(id){ return ($(id)?.value || '').toLowerCase().trim(); }
+function ensureAdminFilters(){
+  const bind = (id, fn)=>{ const el=$(id); if(el && el.dataset.bound!=='1'){ el.dataset.bound='1'; el.oninput=fn; el.onchange=fn; }};
+  if($('adminRiskActivityFilter')) $('adminRiskActivityFilter').innerHTML = activityOptionsHtml($('adminRiskActivityFilter').value||'', true);
+  if($('adminRiskModelActivityFilter')) $('adminRiskModelActivityFilter').innerHTML = activityOptionsHtml($('adminRiskModelActivityFilter').value||'', true);
+  if($('adminPolicyInsurerFilter')) $('adminPolicyInsurerFilter').innerHTML = '<option value="">Všechny pojišťovny</option>' + (CATALOG.insurers||[]).map(i=>`<option value="${i.id||''}" ${($('adminPolicyInsurerFilter').value||'')===(i.id||'')?'selected':''}>${i.short||''} – ${i.name||''}</option>`).join('');
+  bind('adminInsurerSearch', renderAdminInsurers);
+  bind('adminAdviserSearch', renderAdminAdvisers);
+  bind('adminAdviserRoleFilter', renderAdminAdvisers);
+  bind('adminReqTypeSearch', renderAdminReqTypes);
+  bind('adminActivitySearch', renderAdminActivities);
+  bind('adminRiskActivityFilter', renderAdminRisks);
+  bind('adminRiskSearch', renderAdminRisks);
+  bind('adminRiskModelActivityFilter', renderRiskModelAdmin);
+  bind('adminRiskModelSearch', renderRiskModelAdmin);
+  bind('adminDictionarySearch', renderAdminDictionary);
+  bind('adminPolicyInsurerFilter', renderAdminPolicyRefs);
+  bind('adminPolicySearch', renderAdminPolicyRefs);
+}
+function rowMatchesSearch(obj, search){
+  if(!search) return true;
+  return JSON.stringify(obj||{}).toLowerCase().includes(search);
+}
+function saveCurrentWorkLocally(){
+  try{ collectForm(); collectOffers(true); backupInquiryLocally(state); }catch(e){ console.warn('Lokální záloha se nepodařila', e); }
+}
+let offerAutosaveTimer=null;
+function scheduleOfferAutosave(){
+  saveCurrentWorkLocally();
+  if(!state.id) return;
+  clearTimeout(offerAutosaveTimer);
+  offerAutosaveTimer=setTimeout(async()=>{
+    try{ collectForm(); collectOffers(true); await api('/api/inquiries', {method:'POST', body:JSON.stringify(state)}); $('saveStatus').textContent='Nabídky byly automaticky uloženy.'; }
+    catch(e){ $('saveStatus').textContent='Nabídky jsou v lokální záloze. DB uložení selhalo: '+e.message; }
+  }, 900);
+}
+
 function renderAdminActivities(){
-  const rows = (CATALOG.activities||[]).map((a,idx)=>`<div class="admin-row activity" data-idx="${idx}">
+  ensureAdminFilters();
+  const search = adminFilterText('adminActivitySearch');
+  const base = (CATALOG.activities||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>rowMatchesSearch(a,search));
+  const rows = base.map((a)=>`<div class="admin-row activity" data-idx="${a._idx}">
     <input class="act-code" value="${a.code||''}" placeholder="kód">
     <input class="act-name" value="${a.name||''}" placeholder="název činnosti">
     <textarea class="act-desc" placeholder="laický popis pro poradce">${a.description||''}</textarea>
     <input class="act-risk" value="${a.risk_level||''}" placeholder="rizikovost">
     <input class="act-limit" value="${a.limit_hint||''}" placeholder="orientační limit">
-    <button class="secondary adm-del">Smazat</button>
+    <button type="button" class="secondary adm-del">Smazat</button>
   </div>`).join('');
   const el=$('activitiesAdminTable'); if(!el) return;
-  el.innerHTML = `<div class="admin-row activity admin-head"><div>Kód</div><div>Název</div><div>Popis</div><div>Rizikovost</div><div>Limit</div><div></div></div>${rows}`;
+  el.innerHTML = `<div class="admin-row activity admin-head"><div>Kód</div><div>Název</div><div>Popis</div><div>Rizikovost</div><div>Limit</div><div></div></div>${rows || '<div class="admin-empty">Žádný záznam neodpovídá filtru.</div>'}`;
   el.querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.activities.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminActivities(); renderCatalogs(); updateAll(); });
   el.querySelectorAll('input,textarea').forEach(x=>x.oninput=collectAdminActivities);
+  enhanceAdminDetailButtons();
 }
 function collectAdminActivities(){
   const el=$('activitiesAdminTable'); if(!el) return;
@@ -644,7 +847,13 @@ function setRisksFromRows(rows){
   CATALOG.risks = grouped;
 }
 function renderAdminRisks(){
-  const rows = allRiskRows().map((r,idx)=>`<div class="admin-row riskdef" data-idx="${idx}">
+  ensureAdminFilters();
+  const activity = $('adminRiskActivityFilter')?.value || '';
+  const search = adminFilterText('adminRiskSearch');
+  const all = allRiskRows().map((r,idx)=>({...r,_idx:idx}));
+  const filtered = all.filter(r=>(!activity || r.activity_code===activity) && rowMatchesSearch(r,search));
+  if($('adminRiskCount')) $('adminRiskCount').textContent = `Zobrazeno ${filtered.length} z ${all.length} rizik`;
+  const rows = filtered.map((r)=>`<div class="admin-row riskdef" data-idx="${r._idx}">
     <input class="risk-act" value="${r.activity_code||''}" placeholder="kód činnosti">
     <input class="risk-id" value="${r.id||''}" placeholder="id rizika">
     <input class="risk-name" value="${r.name||''}" placeholder="název rizika">
@@ -654,12 +863,13 @@ function renderAdminRisks(){
     <textarea class="risk-question" placeholder="otázka pro klienta">${r.question||''}</textarea>
     <textarea class="risk-reason" placeholder="důvod doporučení">${r.reason||''}</textarea>
     <select class="risk-default"><option value="true" ${r.default_on!==false?'selected':''}>předvolit</option><option value="false" ${r.default_on===false?'selected':''}>nepředvolit</option></select>
-    <button class="secondary adm-del">Smazat</button>
+    <button type="button" class="secondary adm-del">Smazat</button>
   </div>`).join('');
   const el=$('risksAdminTable'); if(!el) return;
-  el.innerHTML = `<div class="admin-row riskdef admin-head"><div>Činnost</div><div>ID</div><div>Název</div><div>Priorita</div><div>Popis</div><div>Limit</div><div>Otázka</div><div>Důvod</div><div>Stav</div><div></div></div>${rows}`;
+  el.innerHTML = `<div class="admin-row riskdef admin-head"><div>Činnost</div><div>ID</div><div>Název</div><div>Priorita</div><div>Popis</div><div>Limit</div><div>Otázka</div><div>Důvod</div><div>Stav</div><div></div></div>${rows || '<div class="admin-empty">Žádné riziko neodpovídá filtru.</div>'}`;
   el.querySelectorAll('.adm-del').forEach(btn=>{ btn.onclick=()=>{ const arr=allRiskRows(); arr.splice(+btn.closest('.admin-row').dataset.idx,1); setRisksFromRows(arr); renderAdminRisks(); renderCatalogs(); updateAll(); }; });
   el.querySelectorAll('input,select,textarea').forEach(x=>x.oninput=collectAdminRisks);
+  enhanceAdminDetailButtons();
 }
 function collectAdminRisks(){
   const el=$('risksAdminTable'); if(!el) return;
@@ -676,14 +886,18 @@ function collectAdminRisks(){
   })).filter(r=>r.name || r.id);
   setRisksFromRows(rows);
 }
-function addAdminRisk(){ collectAdminRisks(); const rows=allRiskRows(); rows.push({activity_code:state.activity?.code||'univerzal', id:'nove_riziko_'+Date.now(), name:'Nové riziko', priority:'DOPORUČENÉ', description:'Doplňte vysvětlení pro poradce.', limit:'', question:'Doplňte otázku pro klienta.', reason:'Doplňte důvod doporučení.', default_on:true}); setRisksFromRows(rows); renderAdminRisks(); renderCatalogs(); }
+function addAdminRisk(){ collectAdminRisks(); const rows=allRiskRows(); const act=$('adminRiskActivityFilter')?.value || state.activity?.code || 'univerzal'; rows.push({activity_code:act, id:'nove_riziko_'+Date.now(), name:'Nové riziko', priority:'DOPORUČENÉ', description:'Doplňte vysvětlení pro poradce.', limit:'', question:'Doplňte otázku pro klienta.', reason:'Doplňte důvod doporučení.', default_on:true}); setRisksFromRows(rows); renderAdminRisks(); renderCatalogs(); }
 
 function renderAdminDictionary(){
-  const rows = (CATALOG.coverageDictionary||[]).map((d,idx)=>`<div class="admin-row dictionary" data-idx="${idx}"><input class="dict-risk" value="${d.risk_id||''}" placeholder="risk_id"><input class="dict-standard" value="${d.standard_name||''}" placeholder="jednotný název"><textarea class="dict-aliases" placeholder="alternativní názvy oddělené čárkou">${(d.aliases||[]).join(', ')}</textarea><button class="secondary adm-del">Smazat</button></div>`).join('');
+  ensureAdminFilters();
+  const search = adminFilterText('adminDictionarySearch');
+  const data=(CATALOG.coverageDictionary||[]).map((d,idx)=>({...d,_idx:idx})).filter(d=>rowMatchesSearch(d,search));
+  const rows = data.map((d)=>`<div class="admin-row dictionary" data-idx="${d._idx}"><input class="dict-risk" value="${d.risk_id||''}" placeholder="risk_id"><input class="dict-standard" value="${d.standard_name||''}" placeholder="jednotný název"><textarea class="dict-aliases" placeholder="alternativní názvy oddělené čárkou">${(d.aliases||[]).join(', ')}</textarea><button type="button" class="secondary adm-del">Smazat</button></div>`).join('');
   const el=$('dictionaryAdminTable'); if(!el) return;
-  el.innerHTML = `<div class="admin-row dictionary admin-head"><div>Risk ID</div><div>Název ASTORIE</div><div>Názvy pojišťoven / synonyma</div><div></div></div>${rows}`;
+  el.innerHTML = `<div class="admin-row dictionary admin-head"><div>Risk ID</div><div>Název ASTORIE</div><div>Názvy pojišťoven / synonyma</div><div></div></div>${rows || '<div class="admin-empty">Žádné mapování neodpovídá filtru.</div>'}`;
   el.querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.coverageDictionary.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminDictionary(); });
   el.querySelectorAll('input,textarea').forEach(x=>x.oninput=collectAdminDictionary);
+  enhanceAdminDetailButtons();
 }
 function collectAdminDictionary(){
   const el=$('dictionaryAdminTable'); if(!el) return;
@@ -692,17 +906,93 @@ function collectAdminDictionary(){
 function addAdminDictionary(){ collectAdminDictionary(); CATALOG.coverageDictionary.push({risk_id:'nove_riziko', standard_name:'Nové mapování', aliases:[]}); renderAdminDictionary(); }
 
 function renderAdminPolicyRefs(){
-  const rows = (CATALOG.policyReferences||[]).map((r,idx)=>`<div class="admin-row policyref" data-idx="${idx}"><input class="pr-insurer" value="${r.insurer_id||''}" placeholder="pojišťovna ID"><input class="pr-risk" value="${r.risk_id||''}" placeholder="risk_id"><input class="pr-doc" value="${r.document||''}" placeholder="dokument"><input class="pr-article" value="${r.article||''}" placeholder="článek/odstavec/strana"><textarea class="pr-note" placeholder="poznámka / výklad">${r.note||''}</textarea><input class="pr-url" value="${r.url||''}" placeholder="odkaz"><button class="secondary adm-del">Smazat</button></div>`).join('');
+  ensureAdminFilters();
+  const insurer=$('adminPolicyInsurerFilter')?.value || '';
+  const search=adminFilterText('adminPolicySearch');
+  const data=(CATALOG.policyReferences||[]).map((r,idx)=>({...r,_idx:idx})).filter(r=>(!insurer || r.insurer_id===insurer) && rowMatchesSearch(r,search));
+  const rows = data.map((r)=>`<div class="admin-row policyref" data-idx="${r._idx}"><input class="pr-insurer" value="${r.insurer_id||''}" placeholder="pojišťovna ID"><input class="pr-risk" value="${r.risk_id||''}" placeholder="risk_id"><input class="pr-doc" value="${r.document||''}" placeholder="dokument"><input class="pr-article" value="${r.article||''}" placeholder="článek/odstavec/strana"><textarea class="pr-note" placeholder="poznámka / výklad">${r.note||''}</textarea><input class="pr-url" value="${r.url||''}" placeholder="odkaz"><button type="button" class="secondary adm-del">Smazat</button></div>`).join('');
   const el=$('policyRefsAdminTable'); if(!el) return;
-  el.innerHTML = `<div class="admin-row policyref admin-head"><div>Pojišťovna</div><div>Risk ID</div><div>Dokument</div><div>Článek</div><div>Poznámka</div><div>Odkaz</div><div></div></div>${rows}`;
+  el.innerHTML = `<div class="admin-row policyref admin-head"><div>Pojišťovna</div><div>Risk ID</div><div>Dokument</div><div>Článek</div><div>Poznámka</div><div>Odkaz</div><div></div></div>${rows || '<div class="admin-empty">Žádný zdroj neodpovídá filtru.</div>'}`;
   el.querySelectorAll('.adm-del').forEach(btn=>btn.onclick=()=>{ CATALOG.policyReferences.splice(+btn.closest('.admin-row').dataset.idx,1); renderAdminPolicyRefs(); });
   el.querySelectorAll('input,textarea').forEach(x=>x.oninput=collectAdminPolicyRefs);
+  enhanceAdminDetailButtons();
 }
 function collectAdminPolicyRefs(){
   const el=$('policyRefsAdminTable'); if(!el) return;
   CATALOG.policyReferences = Array.from(el.querySelectorAll('.admin-row.policyref:not(.admin-head)')).map(row=>({insurer_id:row.querySelector('.pr-insurer').value.trim(), risk_id:row.querySelector('.pr-risk').value.trim(), document:row.querySelector('.pr-doc').value.trim(), article:row.querySelector('.pr-article').value.trim(), note:row.querySelector('.pr-note').value.trim(), url:row.querySelector('.pr-url').value.trim()})).filter(r=>r.insurer_id || r.risk_id || r.document);
 }
 function addAdminPolicyRef(){ collectAdminPolicyRefs(); CATALOG.policyReferences.push({insurer_id:'', risk_id:'', document:'', article:'', note:'', url:''}); renderAdminPolicyRefs(); }
+
+
+function setupAdminDetailObserver(){
+  const root = $('adminView');
+  if(!root || root.dataset.detailObserver==='1') return;
+  root.dataset.detailObserver='1';
+  const obs = new MutationObserver(()=>enhanceAdminDetailButtons());
+  obs.observe(root,{childList:true,subtree:true});
+}
+function enhanceAdminDetailButtons(){
+  document.querySelectorAll('#adminView .admin-row:not(.admin-head)').forEach(row=>{
+    if(row.querySelector('.adm-open-detail')) return;
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='secondary adm-open-detail';
+    btn.textContent='Upravit detail';
+    btn.onclick=(ev)=>{ev.preventDefault(); openAdminDetailModal(row);};
+    const del=row.querySelector('.adm-del');
+    if(del) row.insertBefore(btn,del); else row.appendChild(btn);
+  });
+}
+function niceAdminLabel(el, idx){
+  const ph = el.getAttribute('placeholder');
+  if(ph) return ph.charAt(0).toUpperCase()+ph.slice(1);
+  const cls=[...el.classList].find(c=>!['adm-open-detail','adm-del'].includes(c));
+  const map={
+    'adm-id':'ID','adm-name':'Název','adm-short':'Zkratka','adm-active':'Stav','adm-email':'E-mail','adm-role':'Role','adm-company':'Společnost','adm-reg':'Registrace / status',
+    'act-code':'Kód činnosti','act-name':'Název činnosti','act-desc':'Popis činnosti','act-risk':'Rizikovost','act-limit':'Orientační limit',
+    'risk-act':'Činnost','risk-id':'ID rizika','risk-name':'Název rizika','risk-priority':'Priorita','risk-desc':'Popis pro poradce','risk-limit':'Limit','risk-question':'Otázka pro klienta','risk-reason':'Důvod doporučení','risk-default':'Předvolba',
+    'rm-act':'Činnost','rm-risk':'ID rizika','rm-name':'Název rizika','rm-critical':'Kritičnost','rm-obligation':'Povinnost','rm-weight':'Váha','rm-limit':'Doporučený limit','rm-rec':'Doporučení / upozornění',
+    'dict-risk':'ID rizika','dict-standard':'Jednotný název ASTORIE','dict-aliases':'Synonyma / názvy pojišťoven',
+    'pr-insurer':'Pojišťovna','pr-risk':'ID rizika','pr-doc':'Dokument','pr-article':'Článek / odstavec / strana','pr-note':'Poznámka / výklad','pr-url':'Odkaz'
+  };
+  return map[cls] || ('Pole '+(idx+1));
+}
+function openAdminDetailModal(row){
+  currentAdminDetail = {row, fields:[]};
+  const title = row.querySelector('input[value], textarea')?.value || row.querySelector('input')?.value || 'Detail záznamu';
+  $('adminDetailTitle').textContent = 'Detail záznamu – ' + (title || 'úprava');
+  const form=$('adminDetailForm'); form.innerHTML='';
+  const fields=[...row.querySelectorAll('input, textarea, select')].filter(el=>!el.classList.contains('adm-open-detail') && !el.classList.contains('adm-del'));
+  fields.forEach((el,idx)=>{
+    const label=document.createElement('label');
+    if(el.tagName==='TEXTAREA') label.classList.add('full');
+    label.textContent=niceAdminLabel(el,idx);
+    let clone;
+    if(el.tagName==='SELECT'){
+      clone=document.createElement('select');
+      [...el.options].forEach(o=>{const no=document.createElement('option'); no.value=o.value; no.textContent=o.textContent; no.selected=o.selected; clone.appendChild(no);});
+    }else if(el.tagName==='TEXTAREA'){
+      clone=document.createElement('textarea'); clone.value=el.value || '';
+    }else{
+      clone=document.createElement('input'); clone.type=el.type||'text'; clone.value=el.value || '';
+    }
+    clone.dataset.fieldIndex=idx;
+    label.appendChild(clone); form.appendChild(label);
+    currentAdminDetail.fields.push({source:el, edit:clone});
+  });
+  $('adminDetailModal').classList.remove('hidden');
+}
+function saveAdminDetailModal(){
+  if(!currentAdminDetail) return;
+  currentAdminDetail.fields.forEach(f=>{
+    f.source.value=f.edit.value;
+    f.source.dispatchEvent(new Event('input',{bubbles:true}));
+    f.source.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  $('adminDetailModal').classList.add('hidden');
+  collectAdminInsurers(); collectAdminAdvisers(); collectAdminActivities(); collectAdminRisks(); collectAdminReqTypes(); collectAdminDictionary(); collectAdminPolicyRefs(); collectRiskModelAdmin();
+  renderCatalogs(); updateAll(); enhanceAdminDetailButtons();
+}
 
 function parseDelimitedTable(raw){
   const lines = raw.trim().split(/\r?\n/).filter(Boolean);

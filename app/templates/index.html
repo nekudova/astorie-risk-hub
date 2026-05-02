@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><div class="logo">A</div><div><strong>ASTORIE</strong><span>Business Risk Hub</span></div></div>
-    <div class="top-actions"><span class="badge">MVP 0.19 · UX + klientský výstup</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
+    <div class="top-actions"><span class="badge">MVP 0.28 · Moje poptávky + workflow</span><button id="logoutBtn" class="ghost hidden">Odhlásit</button></div>
   </header>
 
   <main>
@@ -27,6 +27,7 @@
     <section id="appView" class="hidden">
       <nav class="app-nav">
         <button class="nav-btn active" data-view="inquiryView">Poptávka</button>
+        <button class="nav-btn" data-view="myInquiriesView">Moje poptávky</button>
         <button class="nav-btn" data-view="aiView">AI zpracování</button>
         <button class="nav-btn" data-view="offersView">Nabídky</button>
         <button class="nav-btn" data-view="comparisonView">Porovnání</button>
@@ -42,6 +43,43 @@
         <button id="loadListBtn" class="secondary">Načíst uložené poptávky</button>
         <span id="saveStatus" class="status"></span>
       </div>
+
+      <div id="activeInquiryBanner" class="active-inquiry-banner hidden">
+        <div>
+          <span class="mini-label">Aktivní poptávka</span>
+          <strong id="activeInquiryTitle">Bez aktivní poptávky</strong>
+          <span id="activeInquiryMeta" class="muted"></span>
+        </div>
+        <div class="active-actions">
+          <label>Stav
+            <select id="inquiryStatusSelect">
+              <option value="rozpracováno">Rozpracováno</option>
+              <option value="odesláno pojišťovnám">Odesláno pojišťovnám</option>
+              <option value="nabídky přijaty">Nabídky přijaty</option>
+              <option value="odesláno klientovi">Odesláno klientovi</option>
+              <option value="uzavřeno">Uzavřeno</option>
+              <option value="zrušeno">Zrušeno</option>
+            </select>
+          </label>
+          <button id="changeInquiryBtn" class="secondary">Změnit poptávku</button>
+        </div>
+      </div>
+
+      <section id="myInquiriesView" class="app-section hidden">
+        <div class="hero compact">
+          <div><p class="eyebrow">Evidence poradce</p><h1>Moje poptávky</h1><p>Přehled rozpracovaných a odeslaných poptávek. Poradce zde vidí vlastní práci, stavy a počet nabídek.</p></div>
+          <div class="card small"><b>Workflow</b><br>rozpracováno → pojišťovny → klient → uzavřeno</div>
+        </div>
+        <section class="panel">
+          <div class="section-head"><div><h2>Přehled mých poptávek</h2><p class="muted">Kliknutím na Otevřít se načte celá poptávka včetně nabídek, porovnání a zprávy.</p></div><button id="refreshMyInquiriesBtn" class="secondary">Aktualizovat</button></div>
+          <div class="workflow-filters">
+            <label>Stav<select id="myInquiryStatusFilter"><option value="">Všechny stavy</option><option>rozpracováno</option><option>odesláno pojišťovnám</option><option>nabídky přijaty</option><option>odesláno klientovi</option><option>uzavřeno</option><option>zrušeno</option></select></label>
+            <label>Hledat<input id="myInquirySearch" placeholder="klient, činnost, ID..."></label>
+          </div>
+          <div id="myInquiryTiles" class="workflow-tiles"></div>
+          <div id="myInquiriesTable" class="workflow-table"></div>
+        </section>
+      </section>
 
       <section id="inquiryView" class="app-section">
         <div class="hero">
@@ -288,6 +326,7 @@
             <div class="admin-status" id="adminSaveStatus">Připraveno k úpravám</div>
           </div>
           <div class="admin-tabs">
+            <button class="admin-tab" data-admin-tab="inquiriesAdmin">Přehled poptávek</button>
             <button class="admin-tab active" data-admin-tab="insurersAdmin">Pojišťovny</button>
             <button class="admin-tab" data-admin-tab="advisersAdmin">Poradci</button>
             <button class="admin-tab" data-admin-tab="activitiesAdmin">Typy klientů / činnosti</button>
@@ -298,38 +337,44 @@
             <button class="admin-tab" data-admin-tab="riskModelAdmin">Rizikový model</button>
             <button class="admin-tab" data-admin-tab="importAdmin">Import / export</button>
           </div>
+          <div id="inquiriesAdmin" class="admin-section hidden">
+            <div class="section-head"><div><h3>Přehled všech poptávek BO</h3><p class="muted">Evidence celého workflow: komu byla poptávka odeslána, kolik je nabídek, stav zpracování a poslední změna.</p></div><button id="refreshAdminInquiriesBtn" class="secondary">Aktualizovat</button></div>
+            <div class="admin-workbar workflow-adminbar"><label>Stav<select id="adminInquiryStatusFilter"><option value="">Všechny stavy</option><option>rozpracováno</option><option>odesláno pojišťovnám</option><option>nabídky přijaty</option><option>odesláno klientovi</option><option>uzavřeno</option><option>zrušeno</option></select></label><label>Hledat<input id="adminInquirySearch" placeholder="klient, poradce, činnost, ID..."></label><span id="adminInquiryCount" class="muted"></span></div>
+            <div id="adminInquiryTiles" class="workflow-tiles"></div>
+            <div id="adminInquiriesTable" class="workflow-table"></div>
+          </div>
           <div id="insurersAdmin" class="admin-section">
             <div class="section-head"><div><h3>Pojišťovny pro poptávku</h3><p class="muted">Tento číselník se používá ve výběru pojišťoven a v modulu Nabídky.</p></div><button id="addInsurerAdmin" class="secondary">+ Přidat pojišťovnu</button></div>
-            <div class="admin-table" id="insurersAdminTable"></div>
+            <div class="admin-workbar"><label>Hledat pojišťovnu<input id="adminInsurerSearch" placeholder="název, zkratka, ID..."></label><span class="muted">Tip: dlouhé údaje upravujte přes tlačítko Upravit detail.</span></div><div class="admin-table" id="insurersAdminTable"></div>
           </div>
           <div id="advisersAdmin" class="admin-section hidden">
             <div class="section-head"><div><h3>Poradci / makléři</h3><p class="muted">Dočasně zde spravujeme přihlašovací údaje a role. Později doplníme bezpečné nastavení hesel.</p></div><button id="addAdviserAdmin" class="secondary">+ Přidat poradce</button></div>
-            <div class="admin-table" id="advisersAdminTable"></div>
+            <div class="admin-workbar"><label>Hledat poradce<input id="adminAdviserSearch" placeholder="jméno, e-mail, společnost..."></label><label>Role<select id="adminAdviserRoleFilter"><option value="">Všechny role</option><option value="admin">Admin</option><option value="advisor">Poradce</option></select></label><span class="muted">Správa přístupů a rolí.</span></div><div class="admin-table" id="advisersAdminTable"></div>
           </div>
           <div id="activitiesAdmin" class="admin-section hidden">
             <div class="section-head"><div><h2>Typy klientů / činnosti</h2><p class="muted">Sem BO doplňuje obory podnikání, které se následně zobrazují poradci ve vstupním dotazníku.</p></div><button id="addActivityAdmin" class="secondary">+ Přidat činnost</button></div>
-            <div class="admin-table activities-table" id="activitiesAdminTable"></div>
+            <div class="admin-workbar"><label>Filtrovat činnosti<input id="adminActivitySearch" placeholder="např. stavba, výroba, doprava"></label><span class="muted">Tip: v tabulce zůstává jen přehled. Dlouhé texty upravujte přes detail.</span></div><div class="admin-table activities-table" id="activitiesAdminTable"></div>
           </div>
           <div id="risksAdmin" class="admin-section hidden">
             <div class="section-head"><div><h2>Rizika podle činnosti</h2><p class="muted">Tady se buduje hlavní know-how. Každé riziko patří k činnosti, má otázku pro klienta, vysvětlení, limit a důvod doporučení.</p></div><button id="addRiskAdmin" class="secondary">+ Přidat riziko</button></div>
-            <div class="admin-table risks-table" id="risksAdminTable"></div>
+            <div class="admin-workbar"><label>Činnost<select id="adminRiskActivityFilter"></select></label><label>Hledat riziko<input id="adminRiskSearch" placeholder="název, ID, otázka..."></label><span id="adminRiskCount" class="muted"></span></div><div class="admin-table risks-table" id="risksAdminTable"></div>
           </div>
           <div id="requirementsAdmin" class="admin-section hidden">
             <div class="section-head"><h2>Typy doplňujících údajů</h2><button id="addReqTypeAdmin" class="secondary">+ Přidat typ</button></div>
-            <div class="admin-table" id="reqTypesAdminTable"></div>
+            <div class="admin-workbar"><label>Hledat typ informace<input id="adminReqTypeSearch" placeholder="např. výluka, osoba, požadavek..."></label><span class="muted">Používá se ve vstupním dotazníku klienta.</span></div><div class="admin-table" id="reqTypesAdminTable"></div>
           </div>
           <div id="dictionaryAdmin" class="admin-section hidden">
             <div class="section-head"><div><h2>Slovník názvosloví pojišťoven</h2><p class="muted">Mapuje různé názvy pojišťoven na jednotné riziko ASTORIE. Používá se v AI promptu i porovnání.</p></div><button id="addDictionaryAdmin" class="secondary">+ Přidat mapování</button></div>
-            <div class="admin-table dictionary-table" id="dictionaryAdminTable"></div>
+            <div class="admin-workbar"><label>Hledat ve slovníku<input id="adminDictionarySearch" placeholder="risk ID, název, synonymum..."></label></div><div class="admin-table dictionary-table" id="dictionaryAdminTable"></div>
           </div>
           <div id="policyRefsAdmin" class="admin-section hidden">
             <div class="section-head"><div><h2>VPP/DPP zdroje a články</h2><p class="muted">Pracovní databáze zdrojů. Postupně sem doplníme dokumenty, články, odstavce a odkazy pro kontrolu krytí.</p></div><button id="addPolicyRefAdmin" class="secondary">+ Přidat zdroj</button></div>
-            <div class="admin-table policyrefs-table" id="policyRefsAdminTable"></div>
+            <div class="admin-workbar"><label>Pojišťovna<select id="adminPolicyInsurerFilter"></select></label><label>Hledat zdroj<input id="adminPolicySearch" placeholder="risk ID, dokument, článek..."></label></div><div class="admin-table policyrefs-table" id="policyRefsAdminTable"></div>
           </div>
           <div id="riskModelAdmin" class="admin-section hidden">
             <div class="section-head"><div><h2>Rizikový model ASTORIE</h2><p class="muted">BO zde určuje, co je pro daný typ klienta kritické, jakou má riziko váhu a jaké doporučení se má propsat do porovnání a AI promptu.</p></div><button id="addRiskModelAdmin" class="secondary">+ Přidat pravidlo</button></div>
             <div class="admin-note">Doporučení: kritická rizika a vysoké váhy používejte pouze tam, kde je krytí pro danou činnost skutečně zásadní. Hodnoty se použijí v porovnání nabídek.</div>
-            <div class="admin-table riskmodel-table" id="riskModelAdminTable"></div>
+            <div class="admin-workbar"><label>Činnost<select id="adminRiskModelActivityFilter"></select></label><label>Hledat pravidlo<input id="adminRiskModelSearch" placeholder="název, ID rizika..."></label><span id="adminRiskModelCount" class="muted"></span></div><div class="admin-table riskmodel-table" id="riskModelAdminTable"></div>
           </div>
           <div id="importAdmin" class="admin-section hidden">
             <div class="section-head"><div><h2>Import / export číselníků</h2><p class="muted">Pro rychlé naplnění databáze. Excel si ulož jako CSV nebo z něj zkopíruj tabulku včetně hlaviček. Import se před uložením promítne do adminu, trvale se uloží až tlačítkem „Uložit admin číselníky do DB“.</p></div></div>
@@ -347,6 +392,9 @@
       </section>
     </section>
   </main>
+
+  <div id="savedInquiryModal" class="modal hidden"><div class="modal-card wide"><button id="closeSavedModal" class="modal-close">×</button><h2>Uložené poptávky</h2><p class="muted">Otevřením poptávky se načte klient, rizika, vybrané pojišťovny, nabídky, porovnání i zpráva.</p><div id="savedInquiryModalList" class="list"></div></div></div>
+  <div id="adminDetailModal" class="modal hidden"><div class="modal-card wide"><button id="closeAdminDetail" class="modal-close">×</button><h2 id="adminDetailTitle">Detail záznamu</h2><p class="muted">V tabulce zůstává přehled. Dlouhé texty a odborné popisy upravujte pohodlně zde.</p><div id="adminDetailForm" class="admin-detail-form"></div><div class="modal-actions"><button id="saveAdminDetail" class="primary">Uložit detail</button><button id="cancelAdminDetail" class="secondary">Zavřít</button></div></div></div>
 
   <div id="riskModal" class="modal hidden"><div class="modal-card"><button id="closeModal" class="modal-close">×</button><h2 id="modalTitle"></h2><div class="grid2"><label>Stav<select id="modalEnabled"><option value="true">Zahrnout do poptávky</option><option value="false">Vyřadit z poptávky</option></select></label><label>Limit<input id="modalLimit"></label></div><label>Otázka pro klienta<textarea id="modalQuestion"></textarea></label><label>Vysvětlení / popis<textarea id="modalDescription"></textarea></label><label>Důvod doporučení<textarea id="modalReason"></textarea></label><label>Poznámka pro klienta<textarea id="modalNote"></textarea></label><button id="saveRiskDetail" class="primary">Uložit detail rizika</button></div></div>
 
